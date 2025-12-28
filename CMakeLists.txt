@@ -12,6 +12,37 @@ FetchContent_Declare(SFML
     SYSTEM)
 FetchContent_MakeAvailable(SFML)
 
-add_executable(ChessClash src/main.cpp)
+# ----core----
+add_library(core
+    src/core/board.cpp
+)
+
+target_include_directories(core PUBLIC src)
+
+# ----ui----
+add_library(ui
+    src/ui/boardRender.cpp
+)
+
+target_link_libraries(ui PUBLIC core sfml-graphics sfml-window sfml-system)
+
+
+target_include_directories(core PUBLIC src)
+target_include_directories(ui PUBLIC src)
+
+
+add_executable(ChessClash
+    src/main.cpp)
+
+add_executable(TestFile
+    src/tester.cpp)
+
 target_compile_features(ChessClash PRIVATE cxx_std_17)
-target_link_libraries(ChessClash PRIVATE SFML::Graphics)
+target_link_libraries(ChessClash
+    PRIVATE
+        ui
+        core
+        sfml-graphics
+        sfml-window
+        sfml-system
+)
