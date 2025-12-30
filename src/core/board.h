@@ -19,11 +19,15 @@ public:
     };
     
     bool activePlayer = 1; // 1 is white and 0 is black
-    int gameState = 0;
+    // gamestate:
+    // 1: white wins
+    // -1: black wins
+    // 0: draw
+    int gameState = 2;
     // in order:
     // white: king moved 1 rook moved, 8 rook moved,
     // black: king moved, 1 rook moved, 8 rook moved
-    bool piecesHaveMoved[6] = {0};
+    bool castlePiecesMoved[6] = {0};
     
     // if it is 50, its a draw
     int movesWithoutCapture = 0;
@@ -41,6 +45,9 @@ private:
     bool pawnMove(int pieceX, int pieceY, int goalX, int goalY);
     bool knightMove(int pieceX, int pieceY, int goalX, int goalY);
     bool queenMove(int pieceX, int pieceY, int goalX, int goalY);
+    
+    void movePiece(int xPiece, int yPiece, int xGoal, int yGoal);
+    void killPiece(int xPiece, int yPiece);
 };
 
 #endif

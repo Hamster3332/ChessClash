@@ -50,8 +50,55 @@ bool Board::isLegalMove(int xPiece, int yPiece, int xGoal, int yGoal) {
     switch (pieceType) {
         // king
         case 'k':
-        if (xDist > 1 || yDist > 1) // moved further than 1 square
+        // wants to castle
+        if (xDist == 2 && yDist == 0) {
+            // if white king has not moved
+            if (pieceIsWhite && !castlePiecesMoved[0]) {
+                // if he castles short (right)
+                if ((changeX == 1 && !castlePiecesMoved[1]) || 
+                    // or long (left)
+                    (changeX == -1 && !castlePiecesMoved[2])) {
+                    // if the squares inbetween are free
+                    // TODO need to check for checks
+                    if (boardState[yGoal][xGoal] != '.' ||
+                        boardState[yGoal][xGoal - changeX] != '.') {
+                            return false;
+                    }
+                } else {
+                    return false;
+                }
+            } // if black king has not moved
+            else if (!castlePiecesMoved[3]) {
+                // if he castles short (right)
+                if ((changeX == 1 && !castlePiecesMoved[4]) || 
+                    // or long (left)
+                    (changeX == -1 && !castlePiecesMoved[5])) {
+                    // if the squares inbetween are free
+                    // TODO need to check for checks
+                    if (boardState[yGoal][xGoal] != '.' ||
+                        boardState[yGoal][xGoal - changeX] != '.') {
+                            return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+            // all conditions are met
+            // actually castle now
+            // short castle
+            if (changeX == 1) {
+                movePiece(xGoal + changeX, yGoal, xGoal - changeX, yGoal);
+            } // long castle
+            else {
+                movePiece(xGoal + changeX * 2, yGoal, xGoal - changeX, yGoal);
+            }
+        }
+        else if (xDist > 1 || yDist > 1) // moved further than 1 square
             return false;
+        // king has moved
+        castlePiecesMoved[3 * (pieceIsBlack)] = true;
         break;
         
         // rook
@@ -158,7 +205,7 @@ bool Board::isLegalMove(int xPiece, int yPiece, int xGoal, int yGoal) {
             if (yGoal - changeY != enPassantY || xGoal != enPassantX) {
                 return false;
             } else {
-                boardState[enPassantY][enPassantX] = '.';
+                killPiece(enPassantX, enPassantY);
             }
         }
         
@@ -172,9 +219,17 @@ bool Board::isLegalMove(int xPiece, int yPiece, int xGoal, int yGoal) {
         
     }
     
+    if (boardState[yGoal][xGoal] == '.') {
+        movesWithoutCapture++;
+    } else {
+        movesWithoutCapture = 0;
+    }
     
-    boardState[yPiece][xPiece] = '.';
-    boardState[yGoal][xGoal] = piece;
+    if (movesWithoutCapture >= 50) {
+        gameState = 0;
+    }
+    
+    movePiece(xPiece, yPiece, xGoal, yGoal);
     activePlayer = !activePlayer;
     return true;
 }
@@ -187,4 +242,13 @@ bool Board::kingMove(int pieceX, int pieceY, int goalX, int goalY) {
         return false;
     }
     return true;
+}
+
+void Board::movePiece(int xPiece, int yPiece, int xGoal, int yGoal) {
+    unsigned char p = boardState[yPiece][xPiece];
+    boardState[yGoal][xGoal] = p;
+    boardState[yPiece][xPiece] = '.';
+}
+void Board::killPiece(int xPiece, int yPiece) {
+    boardState[yPiece][xPiece] = '.';
 }
