@@ -1,9 +1,7 @@
 #include "board.h"
 #include "chessVector.h"
-#include <algorithm>
 #include <cctype>
 #include <cstdlib>
-#include <iostream>
 
 
 bool isLower(unsigned char c) {
@@ -46,9 +44,6 @@ bool Board::isLegalMove(chessVector piece, chessVector goal) {
 
     if (!isDifX && !isDifY) return false; // piece captures itself
 
-    if (enPassantPossible && activePlayer == enPassantPlayer) {
-        enPassantPossible = false;
-    }
 
     switch (pieceType) {
         // king
@@ -103,7 +98,7 @@ bool Board::isLegalMove(chessVector piece, chessVector goal) {
         if (dist.x != 0 && dist.y != 0){
             return false;
         }
-        // move in change Direction
+        // check moves
         for (int i = 1; i < dist.matinnatianDist(); ++i) {
             if (get(piece + (change * i)) != '.') {
                 return false;
@@ -117,7 +112,7 @@ bool Board::isLegalMove(chessVector piece, chessVector goal) {
         if (dist.x != dist.y) {
             return false;
         }
-        
+        // check moves
         for (int i = 1; i < dist.matinnatianDist(); ++i) {
             if (get(piece + (change * i)) != '.') {
                 return false;
@@ -134,6 +129,7 @@ bool Board::isLegalMove(chessVector piece, chessVector goal) {
                 return false;
             }
         }
+        // check moves
         for (int i = 1; i < dist.matinnatianDist(); ++i) {
             if (get(piece + (change * i)) != '.') {
                 return false;
@@ -150,54 +146,46 @@ bool Board::isLegalMove(chessVector piece, chessVector goal) {
 
         // pawn (oh no)
         case 'p':
-        if (dist.x > 1 || dist.y > 2 || change.y == 0) {
-            return false;
-        }
-        if ((change.x != 0 && boardState[goal.y][goal.x] == '.' && !enPassantPossible) ||
-            (change.x != 0 && dist.y != 1)) {
-            return false;
-        }
-
-        if (pieceIsWhite) {
-            if (change.y != -1) {
-                return false;
-            }
+        // wants to move 2 forward
+        if (dist.y == 2) {
+            // wants to move to side
+            if (dist.x != 0) return false;
             // so like the board is counted from top to bottom, and 6 would be
             // the 7th row, where the pawn can move 2 squares
-            if (piece.y < 6 && dist.y > 1) {
-                return false;
-            }
-        } else {
-            if (change.y != 1) {
-                return false;
-            }
-            // so like the board is counted from top to bottom, and 2 would be
-            // the 3rd row, where the pawn can move 2 squares
-            if (piece.y > 2 && dist.y > 1) {
-                return false;
-            }
-        }
+            // check if it can move 2
+            if (pieceIsWhite && piece.y < 6) return false;
+            if (pieceIsBlack && piece.y > 2) return false;
 
-        // wants to en passant
-        if (change.x != 0 && boardState[goal.y][goal.x] == '.') {
-            if (goal.y - change.y != enPassantY || goal.x != enPassantX) {
+        // wants to move 1 forward
+        } else if (dist.y == 1) {
+            // moves in the correct directory
+            if (pieceIsWhite && change.y != -1) {
                 return false;
-            } else {
-                killPiece({enPassantX, enPassantY});
             }
-        }
+            else if (pieceIsBlack && change.y != 1) {
+                return false;
+            }
 
-        if (dist.y == 2) {
-            enPassantX = goal.x;
-            enPassantY = goal.y;
-            enPassantPlayer = activePlayer;
-            enPassantPossible = true;
-        }
+            // wants to Side step
+            if (dist.x > 1) return false;
+            // wants to advance-d lol
+            else if (dist.x == 0 && get(goal) != '.') return false;
+            // wants to capture
+            else if (dist.x == 1 && get(goal) == '.'){
+                if (!enPassantPossible || goal.sub(0, change.y) != enPassant)
+                    return false;
+            }
+        } else return false;
         break;
-
     }
 
-    if (boardState[goal.y][goal.x] == '.') {
+    return true;
+}
+
+
+GameState Board::movePiece(chessVector piece, chessVector goal, bool changeActivePlayer) {
+    unsigned char p = get(piece);
+    if (get(goal) == '.') {
         movesWithoutCapture++;
     } else {
         movesWithoutCapture = 0;
@@ -205,22 +193,31 @@ bool Board::isLegalMove(chessVector piece, chessVector goal) {
 
     if (movesWithoutCapture >= 50) {
         gameState = DRAW;
+        return DRAW;
     }
 
-    return true;
-}
+    // en Passant
+    enPassantPossible = false;
 
+    if (std::tolower(p) == 'p') {
+        if (piece.getDistance(goal).x == 1 && get(goal) == '.') {
+            killPiece(enPassant);
+        }
+        if (piece.getDistance(goal).y == 2) {
+            enPassant = goal;
+            enPassantPossible = true;
+        }
+    }
 
-void Board::movePiece(chessVector piece, chessVector goal, bool changeActivePlayer) {
-    unsigned char p = boardState[piece.y][piece.x];
-    boardState[goal.y][goal.x] = p;
-    boardState[piece.y][piece.x] = '.';
+    set(goal, p);
+    set(piece, '.');
     if (changeActivePlayer) {
         activePlayer = !activePlayer;
     }
+    return ONGOING;
 }
 
-void Board::killPiece(chessVector piece) {
+inline void Board::killPiece(chessVector piece) {
     boardState[piece.y][piece.x] = '.';
 }
 
