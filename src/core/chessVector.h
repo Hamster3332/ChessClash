@@ -2,38 +2,41 @@
 #define CHESS_VECTOR_H
 
 
-class chessVector {
+class ChessVector {
 public:
     int x = 0;
     int y = 0;
-    chessVector(int _x, int _y);
+    ChessVector(int _x, int _y);
 
-    chessVector getTo(chessVector second ) const;
-    chessVector getTo(int _x, int _y) const;
+    ChessVector getTo(ChessVector second ) const;
+    ChessVector getTo(int _x, int _y) const;
 
-    chessVector getDistance(chessVector second ) const;
-    chessVector getDistance(int _x, int _y) const;
+    ChessVector getDistance(ChessVector second ) const;
+    ChessVector getDistance(int _x, int _y) const;
 
-    chessVector normToInt() const;
-    chessVector operator *(int amount) const;
-    chessVector operator +(chessVector second) const;
-    chessVector operator -(chessVector second) const;
-    bool operator ==(chessVector second) const;
-    chessVector scale(int amount ) const;
-    chessVector scaledown(int amount ) const;
+    ChessVector normToInt() const;
+    ChessVector operator *(int amount) const;
+    ChessVector operator +(ChessVector second) const;
+    ChessVector operator -(ChessVector second) const;
+    bool operator ==(ChessVector second) const;
+    bool operator !=(ChessVector second) const;
+    ChessVector scale(int amount ) const;
+    ChessVector scaledown(int amount ) const;
 
-    chessVector add(chessVector second ) const;
-    chessVector add(int _x, int _y) const;
+    ChessVector add(ChessVector second ) const;
+    ChessVector add(int _x, int _y) const;
 
-    chessVector sub(chessVector second ) const;
-    chessVector sub(int _x, int _y) const;
+    ChessVector sub(ChessVector second ) const;
+    ChessVector sub(int _x, int _y) const;
 
     int manhattanDist() const;
     int matinnatianDist() const;
 
-    bool equal(chessVector second ) const;
+    bool equal(ChessVector second ) const;
     bool equal(int _x, int _y) const;
 
+    bool notEqual(ChessVector second ) const;
+    bool notEqual(int _x, int _y) const;
 private:
 
 };

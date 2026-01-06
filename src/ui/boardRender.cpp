@@ -1,4 +1,6 @@
 #include <iostream>
+#include <iterator>
+#include <ostream>
 #include "boardRender.h"
 
 void TextureManager::load() {

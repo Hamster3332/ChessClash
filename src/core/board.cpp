@@ -2,52 +2,59 @@
 #include "chessVector.h"
 #include <cctype>
 #include <cstdlib>
+#include <iostream>
+#include <ostream>
 
 
 bool isLower(unsigned char c) {
     return c & 32;// >> 5;
-    // so uhm 32 has this 1 bit which changes in the ascii table
-    // when letters go from upper to lowercase. Bitshift to make the result 0 or 1 instead of 32
-    // when true.
 }
 
 int manhattanDistance(int pieceX, int pieceY, int goalX, int goalY) {
     return std::abs(goalX - pieceX) + std::abs(goalY - pieceY);
 };
 
-bool Board::isLegalMove(chessVector piece, chessVector goal) {
-    unsigned char pieceChar = boardState[piece.y][piece.x];
-    unsigned char goalPiece = boardState[goal.y][goal.x];
+bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
+    unsigned char pieceChar = get(piece);
+    unsigned char goalChar = get(goal);
     unsigned char pieceType = std::tolower(pieceChar);
 
     bool pieceIsBlack = isLower(pieceChar);
     bool pieceIsWhite = !pieceIsBlack;
-    bool goalIsBlack = isLower(goalPiece);
+    bool goalIsBlack = isLower(goalChar);
     bool goalIsWhite = !goalIsBlack;
 
     bool isDifX = (piece.x != goal.x);
     bool isDifY = (piece.y != goal.y);
 
-    chessVector dist = goal.getDistance(piece);
-    chessVector changeVector = piece.getTo(goal);
-    chessVector change = changeVector.normToInt();
+    ChessVector dist = goal.getDistance(piece);
+    ChessVector changeVector = piece.getTo(goal);
+    ChessVector change = changeVector.normToInt();
 
     if (gameState != ONGOING) return false; // game is over
 
     if (pieceChar == '.') return false; // moving an empty square?
 
-    if (pieceIsBlack && goalIsBlack && goalPiece != '.') return false; // capture your own pieces
-    if (pieceIsWhite && goalIsWhite && goalPiece != '.') return false;
+    if (pieceIsBlack && goalIsBlack && goalChar != '.') return false; // capture your own pieces
+    if (pieceIsWhite && goalIsWhite && goalChar != '.') return false;
 
     if (activePlayer && pieceIsBlack) return false; // not your turn
     if (!activePlayer && pieceIsWhite) return false;
 
     if (!isDifX && !isDifY) return false; // piece captures itself
 
+    // check if still in Check
+    set(piece, '.');
+    set(goal, pieceChar);
+    bool isAttacked = isAtackedByOpponent(KPos[activePlayer]);
+    set(piece, pieceChar);
+    set(goal, goalChar);
+    if (isAttacked) return false;
 
     switch (pieceType) {
         // king
         case 'k':
+        if (isAtackedByOpponent(goal)){return false;}
         // wants to castle
         if (dist.x == 2 && dist.y == 0) {
             // if white king has not moved
@@ -182,8 +189,63 @@ bool Board::isLegalMove(chessVector piece, chessVector goal) {
     return true;
 }
 
+bool Board::isAtackedByOpponent(ChessVector square) {
+    ChessVector watchDog = {0,0};
+    unsigned char p;
+    // check K-Night
+    ChessVector knightDirections[8]={{1,2},{1,-2},{-1,-2},{-1,2},{2,1},{-2,1},{-2,-1},{-2,1}};for(ChessVector Direction:knightDirections){p=get(square+Direction);if(p==0)continue;if(activePlayer==isLower(p)&&std::tolower(p)=='n')return true;}
+    // check "THE ROOOOOOK!" - Levy Rozman
+    ChessVector rookDirections[4] = {{0,1},{0,-1},{1,0},{-1,0}};
+    for (ChessVector Direction : rookDirections) {
+        watchDog = square + Direction;
+        while (get(watchDog) == '.') {
+            watchDog = watchDog + Direction;
+        }
+        p = get(watchDog);
+        if (p == 0) continue;
+        if (activePlayer == isLower(p)) {
+            if (std::tolower(p) == 'r') return true;
+            if (std::tolower(p) == 'q') return true;
+        }
+    }
+    // check Biscquit
+    ChessVector BishopDirections[4] = {{1,1},{-1,-1},{1,-1},{-1,1}};
+    for (ChessVector Direction : BishopDirections) {
+        watchDog = square + Direction;
+        while (get(watchDog) == '.') {
+            watchDog = watchDog + Direction;
+        }
+        p = get(watchDog);
+        if (p == 0) continue;
+        if (activePlayer == isLower(p)) {
+            if (std::tolower(p) == 'b') return true;
+            if (std::tolower(p) == 'q') return true;
+        }
+    }
+    // King
+    for (ChessVector Direction : rookDirections) {
+        p = get(square + Direction);
+        if (p == 0) continue;
+        if (activePlayer == isLower(p) && std::tolower(p) == 'k') return true;
+    }
+    for (ChessVector Direction : BishopDirections) {
+        p = get(square + Direction);
+        if (p == 0) continue;
+        if (activePlayer == isLower(p) && std::tolower(p) == 'k') return true;
+    }
+    // Pawn (oh nooooo)
+    ChessVector PawnDirections[2] = {{1,1},{-1,1}};
+    for (ChessVector Direction : PawnDirections) {
+        Direction.y = 1 - activePlayer * 2;
+        p = get(square + Direction);
+        if (p == 0) continue;
+        if (activePlayer == isLower(p) && std::tolower(p) == 'p') return true;
+    }
 
-GameState Board::movePiece(chessVector piece, chessVector goal, bool changeActivePlayer) {
+    return false;
+}
+
+GameState Board::movePiece(ChessVector piece, ChessVector goal, bool changeActivePlayer) {
     unsigned char p = get(piece);
     if (get(goal) == '.') {
         movesWithoutCapture++;
@@ -209,6 +271,10 @@ GameState Board::movePiece(chessVector piece, chessVector goal, bool changeActiv
         }
     }
 
+    if (std::tolower(p) == 'k') {
+        KPos[activePlayer] = goal;
+    }
+
     set(goal, p);
     set(piece, '.');
     if (changeActivePlayer) {
@@ -217,15 +283,19 @@ GameState Board::movePiece(chessVector piece, chessVector goal, bool changeActiv
     return ONGOING;
 }
 
-inline void Board::killPiece(chessVector piece) {
+inline void Board::killPiece(ChessVector piece) {
     boardState[piece.y][piece.x] = '.';
 }
 
 
-inline unsigned char Board::get(chessVector piece){
+inline unsigned char Board::get(ChessVector piece) {
+    if (piece.x > 7 || piece.x < 0
+        || piece.y > 7 || piece.y < 0) {
+        return 0;
+    }
     return boardState[piece.y][piece.x];
 }
 
-inline void Board::set(chessVector piece, unsigned char type){
+inline void Board::set(ChessVector piece, unsigned char type){
     boardState[piece.y][piece.x] = type;
 }
