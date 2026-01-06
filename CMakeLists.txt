@@ -12,9 +12,11 @@ FetchContent_Declare(SFML
     SYSTEM)
 FetchContent_MakeAvailable(SFML)
 
+
 # ----core----
 add_library(core
     src/core/board.cpp
+    src/core/chessVector.cpp
 )
 
 target_include_directories(core PUBLIC src)

@@ -1,9 +1,25 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#include "chessVector.h"
+
 bool isLower(unsigned char c);
 
 int manhattanDistance(int pieceX, int pieceY, int goalX, int goalY);
+
+enum GameState {
+    ONGOING = 2,
+    WHITE_WINS = 1,
+    BLACK_WINS = -1,
+    DRAW = 0
+};
+
+enum Castles{
+    SHORT_BLACK = 0,
+    LONG_BLACK = 1,
+    SHORT_WHITE = 2,
+    LONG_WHITE = 3
+};
 
 class Board {
 public:
@@ -19,11 +35,8 @@ public:
     };
     
     bool activePlayer = 1; // 1 is white and 0 is black
-    // gamestate:
-    // 1: white wins
-    // -1: black wins
-    // 0: draw
-    int gameState = 2;
+    
+    GameState gameState = ONGOING;
     // in order:
     // white: king moved 1 rook moved, 8 rook moved,
     // black: king moved, 1 rook moved, 8 rook moved
@@ -36,18 +49,14 @@ public:
     bool enPassantPlayer = 0;
     bool enPassantPossible = false;
     
-    bool isLegalMove(int pieceX, int pieceY, int goalX, int goalY);
+    bool isLegalMove(chessVector piece, chessVector goal);
+    void movePiece(chessVector piece, chessVector goal, bool changeActivePlayer);
+    
+    inline unsigned char get(chessVector piece);
+    inline void set(chessVector piece, unsigned char type);
     
 private:
-    bool kingMove(int pieceX, int pieceY, int goalX, int goalY);
-    bool rookMove(int pieceX, int pieceY, int goalX, int goalY);
-    bool bishopMove(int pieceX, int pieceY, int goalX, int goalY);
-    bool pawnMove(int pieceX, int pieceY, int goalX, int goalY);
-    bool knightMove(int pieceX, int pieceY, int goalX, int goalY);
-    bool queenMove(int pieceX, int pieceY, int goalX, int goalY);
-    
-    void movePiece(int xPiece, int yPiece, int xGoal, int yGoal);
-    void killPiece(int xPiece, int yPiece);
+    void killPiece(chessVector piece);
 };
 
 #endif

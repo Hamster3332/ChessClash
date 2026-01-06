@@ -1,7 +1,5 @@
-#include "../constants.h"
 #include <iostream>
 #include "boardRender.h"
-
 
 void TextureManager::load() {
         if (!textures['p'].loadFromFile("assets/b_pawn.png"))
@@ -38,7 +36,6 @@ sf::Texture& TextureManager::get(char piece) {
 RenderBoard::RenderBoard(sf::RenderWindow& w, const sf::Vector2f& pos)
     : boardPos(pos), window(w)
 {
-    
     boardPos = pos;
     bool whiteSquare = true;
     for (int y = 0; y < 8; y++) {
@@ -99,74 +96,24 @@ void RenderBoard::draw(TextureManager &textures, sf::Vector2i &mousePos, unsigne
     }
 }
 
-void RenderBoard::selectPiece(sf::Vector2i &clickPos, bool isClicking, unsigned char boardState[8][8], Board &board) {
+void RenderBoard::selectPiece(sf::Vector2i &clickPos, bool isClicking, Board &board) {
     sf::Vector2f relClickPos = {clickPos.x - boardPos.x, clickPos.y - boardPos.y};
-    relClickPos.x /= boardSize;
-    relClickPos.y /= boardSize;
+    relClickPos.x /= (boardSize / 8.f);
+    relClickPos.y /= (boardSize / 8.f);
     
     if (relClickPos.x < 0.f ||
         relClickPos.y < 0.f ||
-        relClickPos.x > 1.f ||
-        relClickPos.y > 1.f)
+        relClickPos.x > 8.f ||
+        relClickPos.y > 8.f)
     {
         pieceSelected = false;
         return;
     }
     
+    clickX = (int)relClickPos.x;
+    clickY = (int)relClickPos.y;
     
-    if (relClickPos.x < 4.f / 8.f) {
-        if (relClickPos.x < 2.f / 8.f) {
-            if (relClickPos.x < 1.f / 8.f) {
-                clickX = 0; // 1st column
-            } else {
-                clickX = 1; // 2nd column
-            }
-        } else if (relClickPos.x < 3.f / 8.f) {
-            clickX = 2; // 3rd column
-        } else {
-            clickX = 3; // 4th column
-        }
-    } else {
-        if (relClickPos.x < 6.f / 8.f) {
-            if (relClickPos.x < 5.f / 8.f) {
-                clickX = 4; // 5th column
-            } else {
-                clickX = 5; // 6th column
-            }
-        } else if (relClickPos.x < 7.f / 8.f) {
-            clickX = 6; // 7th column
-        } else {
-            clickX = 7; // 8th column
-        }
-    }
-    
-    if (relClickPos.y < 4.f / 8.f) {
-        if (relClickPos.y < 2.f / 8.f) {
-            if (relClickPos.y < 1.f / 8.f) {
-                clickY = 0; // 1st row
-            } else {
-                clickY = 1; // 2nd row
-            }
-        } else if (relClickPos.y < 3.f / 8.f) {
-            clickY = 2; // 3rd row
-        } else {
-            clickY = 3; // 4th row
-        }
-    } else {
-        if (relClickPos.y < 6.f / 8.f) {
-            if (relClickPos.y < 5.f / 8.f) {
-                clickY = 4; // 5th row
-            } else {
-                clickY = 5; // 6th row
-            }
-        } else if (relClickPos.y < 7.f / 8.f) {
-            clickY = 6; // 7th row
-        } else {
-            clickY = 7; // 8th row
-        }
-    }
-    
-    char p = boardState[clickY][clickX];
+    char p = board.boardState[clickY][clickX];
     if (p == '.' && isClicking) {
         return;
     }
@@ -177,11 +124,10 @@ void RenderBoard::selectPiece(sf::Vector2i &clickPos, bool isClicking, unsigned 
         selPieceY = clickY;
     } else if (pieceSelected) {
         pieceSelected = false;
-        if (!(selPieceX == clickX && selPieceY == clickY)) {
-            if (board.isLegalMove(selPieceX, selPieceY, clickX, clickY)) {
-                lastOrigX = selPieceX;
-                lastOrigY = selPieceY;
-            }
+        if (board.isLegalMove({selPieceX, selPieceY}, {clickX, clickY})) {
+            lastOrigX = selPieceX;
+            lastOrigY = selPieceY;
+            board.movePiece({selPieceX, selPieceY}, {clickX, clickY}, true);
         }
     }
 }

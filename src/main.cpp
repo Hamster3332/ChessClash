@@ -33,7 +33,7 @@ int main()
                 if (mouseButtonPressed->button == sf::Mouse::Button::Left)
                 {
                     clickPos = {mouseButtonPressed->position.x, mouseButtonPressed->position.y};
-                    renderBoard.selectPiece(clickPos, true, board.boardState, board);
+                    renderBoard.selectPiece(clickPos, true, board);
                 }
             }
             else if (const auto* mouseButtonReleased = event->getIf<sf::Event::MouseButtonReleased>())
@@ -41,7 +41,7 @@ int main()
                 if (mouseButtonReleased->button == sf::Mouse::Button::Left)
                 {
                     clickPos = {mouseButtonReleased->position.x, mouseButtonReleased->position.y};
-                    renderBoard.selectPiece(clickPos, false, board.boardState, board);
+                    renderBoard.selectPiece(clickPos, false, board);
                 }
             }
             if (const auto* mouseMoved = event->getIf<sf::Event::MouseMoved>())
