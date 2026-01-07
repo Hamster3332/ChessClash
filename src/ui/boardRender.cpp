@@ -29,7 +29,7 @@ void TextureManager::load() {
         if (!textures['K'].loadFromFile("assets/w_king.png"))
             std::cerr << "Failed to load w_king.png." << std::endl;
     }
-    
+
 sf::Texture& TextureManager::get(char piece) {
     return textures.at(piece);
 }
@@ -53,7 +53,7 @@ RenderBoard::RenderBoard(sf::RenderWindow& w, const sf::Vector2f& pos)
             rect.setPosition({boardPos.x + cellSize * x, boardPos.y + cellSize * y});
             cells.push_back(rect);
             window.draw(rect);
-            
+
         }
         whiteSquare = !whiteSquare;
     }
@@ -64,17 +64,17 @@ void RenderBoard::draw(TextureManager &textures, sf::Vector2i &mousePos, unsigne
         //std::cout << cells.size() << std::endl;
         window.draw(cells[c]);
     }
-    
+
     sf::Sprite sprite(textures.get('p'));
     sf::Vector2f pos = {0, 0};
-    
+
     for (int y = 0; y < 8; y++) {
         pos.y = boardPos.y + cellSize * y;
-        
+
         for (int x = 0; x < 8; x++) {
             pos.x = boardPos.x + cellSize * x;
-            
-            
+
+
             if (x == lastOrigX && y == lastOrigY) {
                 sf::RectangleShape rect = sf::RectangleShape({cellSize, cellSize});
                 rect.setPosition(pos);
@@ -84,7 +84,7 @@ void RenderBoard::draw(TextureManager &textures, sf::Vector2i &mousePos, unsigne
 
             char p = boardState[y][x];
             if (p == '.') continue;
-            
+
             sprite.setTexture(textures.get(p));
             if (x == selPieceX && y == selPieceY && pieceSelected) {
                 sprite.setPosition({(float)mousePos.x - cellSize / 2.f, (float)mousePos.y - cellSize / 2.f});
@@ -92,7 +92,7 @@ void RenderBoard::draw(TextureManager &textures, sf::Vector2i &mousePos, unsigne
                 sprite.setPosition(pos);
             }
             sprite.setScale({cellSize / 64.f, cellSize / 64.f});
-            
+
             window.draw(sprite);
         }
     }
@@ -102,7 +102,7 @@ void RenderBoard::selectPiece(sf::Vector2i &clickPos, bool isClicking, Board &bo
     sf::Vector2f relClickPos = {clickPos.x - boardPos.x, clickPos.y - boardPos.y};
     relClickPos.x /= (boardSize / 8.f);
     relClickPos.y /= (boardSize / 8.f);
-    
+
     if (relClickPos.x < 0.f ||
         relClickPos.y < 0.f ||
         relClickPos.x > 8.f ||
@@ -111,15 +111,15 @@ void RenderBoard::selectPiece(sf::Vector2i &clickPos, bool isClicking, Board &bo
         pieceSelected = false;
         return;
     }
-    
+
     clickX = (int)relClickPos.x;
     clickY = (int)relClickPos.y;
-    
+
     char p = board.boardState[clickY][clickX];
     if (p == '.' && isClicking) {
         return;
     }
-    
+
     if (isClicking && !pieceSelected) {
         pieceSelected = true;
         selPieceX = clickX;
@@ -133,4 +133,3 @@ void RenderBoard::selectPiece(sf::Vector2i &clickPos, bool isClicking, Board &bo
         }
     }
 }
-

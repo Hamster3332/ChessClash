@@ -2,8 +2,6 @@
 #include "chessVector.h"
 #include <cctype>
 #include <cstdlib>
-#include <iostream>
-#include <ostream>
 
 
 bool isLower(unsigned char c) {
@@ -46,7 +44,9 @@ bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
     // check if still in Check
     set(piece, '.');
     set(goal, pieceChar);
-    bool isAttacked = isAtackedByOpponent(KPos[activePlayer]);
+    bool isAttacked;
+    if (pieceType == 'k') isAttacked = isAtackedByOpponent(goal);
+    else isAttacked = isAtackedByOpponent(KPos[activePlayer]);
     set(piece, pieceChar);
     set(goal, goalChar);
     if (isAttacked) return false;
@@ -55,48 +55,30 @@ bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
         // king
         case 'k':
         if (isAtackedByOpponent(goal)){return false;}
-        // wants to castle
+        // wants to castle WHITE CANNOT CASTLE FIX FIX FIX EROOR AAAAAAAAAHHHHHHHHHHHHHHHHHHHHHHHH
         if (dist.x == 2 && dist.y == 0) {
-            // if white king has not moved
-            if (pieceIsWhite && !castlePiecesMoved[0]) {
-                // if he castles short (right)
-                if ((change.x == 1 && !castlePiecesMoved[1]) ||
-                    // or long (left)
-                    (change.x == -1 && !castlePiecesMoved[2])) {
-                    // if the squares inbetween are free
-                    // TODO need to check for checks
-                    if (boardState[goal.y][goal.x] != '.' ||
-                        boardState[goal.y][goal.x - change.x] != '.') {
-                            return false;
-                    }
-                } else {
-                    return false;
-                }
-            } // if black king has not moved
-            else if (!castlePiecesMoved[3]) {
-                // if he castles short (right)
-                if ((change.x == 1 && !castlePiecesMoved[4]) ||
-                    // or long (left)
-                    (change.x == -1 && !castlePiecesMoved[5])) {
-                    // if the squares inbetween are free
-                    // TODO need to check for checks
-                    if (boardState[goal.y][goal.x] != '.' ||
-                        boardState[goal.y][goal.x - change.x] != '.') {
-                            return false;
-                    }
-                } else {
-                    return false;
-                }
-            } else {
+            if (isAtackedByOpponent(piece) ||
+                isAtackedByOpponent(piece + change) ||
+                isAtackedByOpponent(goal) ||
+                get(piece + change) != '.' ||
+                get(goal) != '.') {
                 return false;
             }
-            // all conditions are met
+            // short castles
+            if (change.x == 1) {
+                if(!castlesPossible[Castles::SHORT_BLACK + activePlayer])
+                    return false;
+            }
+            // long castles
+            else if (!castlesPossible[Castles::LONG_BLACK + activePlayer] ||
+                isAtackedByOpponent(goal + change) ||
+                get(goal + change) != '.') {
+                return false;
+            }
 
         }
         else if (dist.x > 1 || dist.y > 1) // moved further than 1 square
             return false;
-        // king has moved
-        castlePiecesMoved[3 * (pieceIsBlack)] = true;
         break;
 
         // rook
@@ -271,8 +253,19 @@ GameState Board::movePiece(ChessVector piece, ChessVector goal, bool changeActiv
         }
     }
 
-    if (std::tolower(p) == 'k') {
+    else if (std::tolower(p) == 'k') {
         KPos[activePlayer] = goal;
+        castlesPossible[SHORT_BLACK + activePlayer] = false;
+        castlesPossible[LONG_BLACK + activePlayer] = false;
+        ChessVector moveVec = piece.getTo(goal);
+        if (std::abs(moveVec.x) == 2) {
+            betweenMove({(moveVec.x == 2) * 7, piece.y}, goal - moveVec.normToInt());
+        }
+    }
+    
+    else if (std::tolower(p) == 'r') {
+        if (piece.x == 7) castlesPossible[SHORT_BLACK + activePlayer] = false;
+        else if (piece.x == 0) castlesPossible[LONG_BLACK + activePlayer] = false;
     }
 
     set(goal, p);
@@ -294,6 +287,27 @@ inline unsigned char Board::get(ChessVector piece) {
         return 0;
     }
     return boardState[piece.y][piece.x];
+}
+
+/*
+ * moves a piece unrelated to possiblity
+ * and returns (re)moved piece
+ *
+ */
+inline unsigned char Board::betweenMove(ChessVector from, ChessVector to) {
+    unsigned char killed = get(to);
+    set(to, get(from));
+    set(from, '.');
+    return killed;
+}
+/*
+ *
+@returns killed piece→ int**********/
+inline unsigned char Board::betweenMove(ChessVector from, ChessVector to, unsigned char replacedBy) {
+    unsigned char killed = get(to);
+    set(to, get(from));
+    set(from, replacedBy);
+    return killed;
 }
 
 inline void Board::set(ChessVector piece, unsigned char type){

@@ -15,15 +15,15 @@ enum GameState {
 };
 
 enum Castles {
-    SHORT_BLACK = 0,
-    LONG_BLACK = 1,
-    SHORT_WHITE = 2,
-    LONG_WHITE = 3
+    LONG_BLACK = 0,
+    LONG_WHITE = 1,
+    SHORT_BLACK = 2,
+    SHORT_WHITE = 3
 };
 
 enum Player {
-    White = 1,
-    Black = 0
+    Black = 0,
+    White = 1
 };
 
 class Board {
@@ -45,8 +45,8 @@ public:
     // in order:
     // white: king moved 1 rook moved, 8 rook moved,
     // black: king moved, 1 rook moved, 8 rook moved
-    bool castlePiecesMoved[6] = {0};
-    
+    bool castlesPossible[4] = {true};
+
     ChessVector KPos[2] = {{4, 0}, {4, 7}};
 
     // if it is 50, its a draw
@@ -61,6 +61,8 @@ public:
     bool isAtackedByOpponent(ChessVector square);
     inline unsigned char get(ChessVector piece);
     inline void set(ChessVector piece, unsigned char type);
+    inline unsigned char betweenMove(ChessVector from, ChessVector to);
+    inline unsigned char betweenMove(ChessVector from, ChessVector to, unsigned char replacedBy);
 
 private:
     inline void killPiece(ChessVector piece);
