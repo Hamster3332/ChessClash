@@ -1,38 +1,13 @@
+#include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/Rect.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/Graphics/Sprite.hpp>
+#include <SFML/System/Vector2.hpp>
+#include <SFML/Window/Keyboard.hpp>
 #include <iostream>
-#include <iterator>
-#include <ostream>
+#include <vector>
 #include "boardRender.h"
-
-void TextureManager::load() {
-        if (!textures['p'].loadFromFile("assets/b_pawn.png"))
-            std::cerr << "Failed to load b_pawn.png." << std::endl;
-        if (!textures['P'].loadFromFile("assets/w_pawn.png"))
-            std::cerr << "Failed to load w_pawn.png." << std::endl;
-        if (!textures['n'].loadFromFile("assets/b_knight.png"))
-            std::cerr << "Failed to load b_knight.png." << std::endl;
-        if (!textures['N'].loadFromFile("assets/w_knight.png"))
-            std::cerr << "Failed to load w_knight.png." << std::endl;
-        if (!textures['b'].loadFromFile("assets/b_bishop.png"))
-            std::cerr << "Failed to load b_bishop.png." << std::endl;
-        if (!textures['B'].loadFromFile("assets/w_bishop.png"))
-            std::cerr << "Failed to load w_bishop.png." << std::endl;
-        if (!textures['r'].loadFromFile("assets/b_rook.png"))
-            std::cerr << "Failed to load b_rook.png." << std::endl;
-        if (!textures['R'].loadFromFile("assets/w_rook.png"))
-            std::cerr << "Failed to load w_rook.png." << std::endl;
-        if (!textures['q'].loadFromFile("assets/b_queen.png"))
-            std::cerr << "Failed to load b_queen.png." << std::endl;
-        if (!textures['Q'].loadFromFile("assets/w_queen.png"))
-            std::cerr << "Failed to load w_queen.png." << std::endl;
-        if (!textures['k'].loadFromFile("assets/b_king.png"))
-            std::cerr << "Failed to load b_king.png." << std::endl;
-        if (!textures['K'].loadFromFile("assets/w_king.png"))
-            std::cerr << "Failed to load w_king.png." << std::endl;
-    }
-
-sf::Texture& TextureManager::get(char piece) {
-    return textures.at(piece);
-}
 
 
 RenderBoard::RenderBoard(sf::RenderWindow& w, const sf::Vector2f& pos)
@@ -53,20 +28,31 @@ RenderBoard::RenderBoard(sf::RenderWindow& w, const sf::Vector2f& pos)
             rect.setPosition({boardPos.x + cellSize * x, boardPos.y + cellSize * y});
             cells.push_back(rect);
             window.draw(rect);
-
         }
         whiteSquare = !whiteSquare;
     }
 }
 
-void RenderBoard::draw(TextureManager &textures, sf::Vector2i &mousePos, unsigned char boardState[8][8]) {
+void RenderBoard::draw(TextureManager &textures, Board &board) {
     for (int c = 0; c < 64; c++) {
-        //std::cout << cells.size() << std::endl;
         window.draw(cells[c]);
     }
 
-    sf::Sprite sprite(textures.get('p'));
-    sf::Vector2f pos = {0, 0};
+    static sf::Sprite sprite(textures.get('p'));
+    sprite.setScale({cellSize / 64.f, cellSize / 64.f});
+
+    static sf::Vector2f pos = {0, 0};
+    unsigned char p = '.';
+
+    if (pieceSelected) {
+        for (Move possibleMove : possibleMoves) {
+            sf::CircleShape circle = sf::CircleShape(cellSize / 5.f);
+            circle.setPosition({boardPos.x + cellSize * (static_cast<float>(possibleMove.to.x) + 0.3f),
+                             boardPos.y + cellSize * (static_cast<float>(possibleMove.to.y) + 0.3f)});
+            circle.setFillColor(possibleMoveC);
+            window.draw(circle);
+        }
+    }
 
     for (int y = 0; y < 8; y++) {
         pos.y = boardPos.y + cellSize * y;
@@ -82,24 +68,72 @@ void RenderBoard::draw(TextureManager &textures, sf::Vector2i &mousePos, unsigne
                 window.draw(rect);
             }
 
-            char p = boardState[y][x];
+            p = board.boardState[y][x];
             if (p == '.') continue;
 
             sprite.setTexture(textures.get(p));
-            if (x == selPieceX && y == selPieceY && pieceSelected) {
-                sprite.setPosition({(float)mousePos.x - cellSize / 2.f, (float)mousePos.y - cellSize / 2.f});
+            if (selectedPiece.equal(x, y) && pieceSelected) {
+                selectedPieceChar = p;
             } else {
                 sprite.setPosition(pos);
+                window.draw(sprite);
             }
-            sprite.setScale({cellSize / 64.f, cellSize / 64.f});
-
-            window.draw(sprite);
         }
     }
+
+    if (pieceSelected) {
+        sprite.setPosition(selPieceScreenPos);
+        sprite.setTexture(textures.get(selectedPieceChar));
+
+        window.draw(sprite);
+    }
+
+    if (showPromotionWindow) {
+        sf::RectangleShape outerRect = sf::RectangleShape(promotionButtonSize);
+        outerRect.setPosition(promotionWindowPos);
+        outerRect.scale({1.2f, 1.2f});
+        outerRect.setFillColor(sf::Color(100, 100, 100));
+        window.draw(outerRect);
+
+
+        sf::RectangleShape rect = sf::RectangleShape(promotionButtonSize);
+        rect.setPosition(promotionWindowPos);
+        rect.setFillColor(sf::Color(50, 50, 50));
+        window.draw(rect);
+
+        sprite.scale({promoButtonScalar, promoButtonScalar});
+
+        sprite.setTexture(textures.get('N'));
+        sprite.setPosition({promotionWindowPos.x + promoButtonMargin, promotionWindowPos.y + promoButtonMargin});
+        window.draw(sprite);
+
+        sprite.setTexture(textures.get('B'));
+        sprite.setPosition({promotionWindowPos.x + promoButtonMargin, promotionWindowPos.y + promoButtonMargin + promoButtonUnit});
+        window.draw(sprite);
+
+        sprite.setTexture(textures.get('R'));
+        sprite.setPosition({promotionWindowPos.x + promoButtonMargin, promotionWindowPos.y + promoButtonMargin + 2 * promoButtonUnit});
+        window.draw(sprite);
+
+        sprite.setTexture(textures.get('Q'));
+        sprite.setPosition({promotionWindowPos.x + promoButtonMargin, promotionWindowPos.y + promoButtonMargin + 3 * promoButtonUnit});
+        window.draw(sprite);
+    }
+    sprite.scale({1.f, 1.f});
 }
 
-void RenderBoard::selectPiece(sf::Vector2i &clickPos, bool isClicking, Board &board) {
-    sf::Vector2f relClickPos = {clickPos.x - boardPos.x, clickPos.y - boardPos.y};
+void RenderBoard::onMouseMove(TextureManager &textures, sf::Vector2i &mousePos) {
+    selPieceScreenPos = {(float)mousePos.x - cellSize / 2.f, (float)mousePos.y - cellSize / 2.f};
+}
+
+onClickReturn RenderBoard::onClick(sf::Vector2i &clickPos, bool isClicking, Board &board) {
+    static sf::Vector2f relClickPos;
+    onClickReturn funcReturn(false, {{0,0},{0,0}}, false, '.');
+    if (showPromotionWindow) {
+        relClickPos = {clickPos.x - boardPos.x, clickPos.y - boardPos.y};
+        return funcReturn;
+    }
+    relClickPos = {clickPos.x - boardPos.x, clickPos.y - boardPos.y};
     relClickPos.x /= (boardSize / 8.f);
     relClickPos.y /= (boardSize / 8.f);
 
@@ -109,27 +143,34 @@ void RenderBoard::selectPiece(sf::Vector2i &clickPos, bool isClicking, Board &bo
         relClickPos.y > 8.f)
     {
         pieceSelected = false;
-        return;
+        return funcReturn;
     }
 
-    clickX = (int)relClickPos.x;
-    clickY = (int)relClickPos.y;
-
-    char p = board.boardState[clickY][clickX];
-    if (p == '.' && isClicking) {
-        return;
+    static ChessVector click((int)relClickPos.x, (int)relClickPos.y);
+    click.x = (int)relClickPos.x;
+    click.y = (int)relClickPos.y;
+    if (board.get(click) == '.' && isClicking) {
+        return funcReturn;
     }
 
-    if (isClicking && !pieceSelected) {
+    if (isClicking && !pieceSelected && board.hasTurn(click)) {
         pieceSelected = true;
-        selPieceX = clickX;
-        selPieceY = clickY;
+        selectedPiece = click;
+        possibleMoves = board.getLegalMoves(click);
     } else if (pieceSelected) {
         pieceSelected = false;
-        if (board.isLegalMove({selPieceX, selPieceY}, {clickX, clickY})) {
-            lastOrigX = selPieceX;
-            lastOrigY = selPieceY;
-            board.movePiece({selPieceX, selPieceY}, {clickX, clickY}, true);
+        possibleMoves = {};
+        if (board.isLegalMove(selectedPiece, click)) {
+            movePiece({selectedPiece, click}, board, 'q');
+            funcReturn.hasMoved = true;
+            funcReturn.move = {selectedPiece, click};
         }
     }
+    return funcReturn;
+}
+
+void RenderBoard::movePiece(Move move, Board &board, unsigned char promotedTo){
+    lastOrigX = move.from.x;
+    lastOrigY = move.from.y;
+    board.movePiece(move.from, move.to, true, promotedTo);
 }

@@ -1,6 +1,8 @@
 // GITHUB: https://github.com/Hamster3332/ChessClash
 
 #include <SFML/Graphics.hpp>
+#include <cstdlib>
+#include <ctime>
 #include "constants.h"
 
 #include "core/board.h"
@@ -9,18 +11,24 @@
 
 int main()
 {
-    auto window = sf::RenderWindow(sf::VideoMode(WINDOW_SIZE), "Chess Clash");
+    srand(time(0)); // Make Random random
+
+    auto window = sf::RenderWindow(sf::VideoMode(WINDOW_SIZE), "Chess Clash"); // create Window
     window.setFramerateLimit(144);
-    
+
+    Board board; // Create Board
+    board.setBoardState(checkmateBoard);
+
     sf::Vector2f boardPos = {(float)WINDOW_SIZE.y * 0.05f, (float)WINDOW_SIZE.y * 0.05f};
-    Board board;
     RenderBoard renderBoard(window, boardPos);
+
     TextureManager textures;
     textures.load();
+
     sf::Vector2i clickPos = {};
     sf::Vector2i mousePos = {};
-    
-    while (window.isOpen())
+
+    while (window.isOpen()) // mainLoop
     {
         while (const std::optional event = window.pollEvent())
         {
@@ -33,7 +41,7 @@ int main()
                 if (mouseButtonPressed->button == sf::Mouse::Button::Left)
                 {
                     clickPos = {mouseButtonPressed->position.x, mouseButtonPressed->position.y};
-                    renderBoard.selectPiece(clickPos, true, board);
+                    renderBoard.onClick(clickPos, true, board);
                 }
             }
             else if (const auto* mouseButtonReleased = event->getIf<sf::Event::MouseButtonReleased>())
@@ -41,20 +49,21 @@ int main()
                 if (mouseButtonReleased->button == sf::Mouse::Button::Left)
                 {
                     clickPos = {mouseButtonReleased->position.x, mouseButtonReleased->position.y};
-                    renderBoard.selectPiece(clickPos, false, board);
+                    renderBoard.onClick(clickPos, false, board);
                 }
             }
             if (const auto* mouseMoved = event->getIf<sf::Event::MouseMoved>())
             {
                 mousePos = {mouseMoved->position.x, mouseMoved->position.y};
+                renderBoard.onMouseMove(textures, mousePos);
             }
 
         }
 
         window.clear();
-        
-        renderBoard.draw(textures, mousePos, board.boardState);
-        
+
+        renderBoard.draw(textures, board);
+
         window.display();
     }
 }

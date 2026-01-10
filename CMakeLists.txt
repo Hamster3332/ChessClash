@@ -17,6 +17,7 @@ FetchContent_MakeAvailable(SFML)
 add_library(core
     src/core/board.cpp
     src/core/chessVector.cpp
+    src/core/logger.cpp
 )
 
 target_include_directories(core PUBLIC src)
@@ -24,6 +25,7 @@ target_include_directories(core PUBLIC src)
 # ----ui----
 add_library(ui
     src/ui/boardRender.cpp
+    src/ui/textureManager.cpp
 )
 
 target_link_libraries(ui PUBLIC core sfml-graphics sfml-window sfml-system)

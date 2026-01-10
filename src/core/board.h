@@ -2,8 +2,11 @@
 #define BOARD_H
 
 #include "chessVector.h"
+#include <vector>
 
-bool isLower(unsigned char c);
+inline bool isBlack(unsigned char c);
+inline bool isBlack(unsigned char c);
+inline bool isWhite(unsigned char c);
 
 int manhattanDistance(int pieceX, int pieceY, int goalX, int goalY);
 
@@ -21,7 +24,7 @@ enum Castles {
     SHORT_WHITE = 3
 };
 
-enum Player {
+enum enPlayers {
     Black = 0,
     White = 1
 };
@@ -45,7 +48,7 @@ public:
     // in order:
     // white: king moved 1 rook moved, 8 rook moved,
     // black: king moved, 1 rook moved, 8 rook moved
-    bool castlesPossible[4] = {true};
+    bool castlesPossible[4] = {1, 1, 1, 1};
 
     ChessVector KPos[2] = {{4, 0}, {4, 7}};
 
@@ -55,17 +58,24 @@ public:
     ChessVector enPassant = {0, 0};
     bool enPassantPossible = false;
 
-    bool isLegalMove(ChessVector piece, ChessVector goal);
-    GameState movePiece(ChessVector piece, ChessVector goal, bool changeActivePlayer);
+    void setBoardState(unsigned char newState[8][8]);
 
-    bool isAtackedByOpponent(ChessVector square);
-    inline unsigned char get(ChessVector piece);
+    bool isLegalMove(ChessVector piece, ChessVector goal);
+    std::vector<Move> getLegalMoves(ChessVector piece);
+    bool existsLegalMove(ChessVector piece);
+    bool existsLegalMove(bool checkedForActivePlayer);
+
+    GameState movePiece(ChessVector piece, ChessVector goal, bool changeActivePlayer, unsigned char promotedTo);
+    bool isAtackedByOpponent(ChessVector square, bool checkedForActivePlayer);
+    bool hasTurn(ChessVector piece);
+    unsigned char get(ChessVector piece);
     inline void set(ChessVector piece, unsigned char type);
-    inline unsigned char betweenMove(ChessVector from, ChessVector to);
-    inline unsigned char betweenMove(ChessVector from, ChessVector to, unsigned char replacedBy);
+    inline unsigned char betweenMove(Move move);
+    inline unsigned char betweenMove(Move move, unsigned char replacedBy);
 
 private:
     inline void killPiece(ChessVector piece);
+    bool movePrecheck(Move move);
 };
 
 #endif

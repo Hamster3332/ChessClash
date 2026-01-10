@@ -41,6 +41,11 @@ private:
 
 };
 
+struct Move {
+    ChessVector from;
+    ChessVector to;
+};
+
 
 
 

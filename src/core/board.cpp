@@ -2,24 +2,64 @@
 #include "chessVector.h"
 #include <cctype>
 #include <cstdlib>
+#include <iostream>
+#include <ostream>
+#include <vector>
+#include "logger.h"
 
 
-bool isLower(unsigned char c) {
+inline bool isBlack(unsigned char c) {
     return c & 32;// >> 5;
+}
+
+inline bool isWhite(unsigned char c) {
+    return !(c & 32);// >> 5;
 }
 
 int manhattanDistance(int pieceX, int pieceY, int goalX, int goalY) {
     return std::abs(goalX - pieceX) + std::abs(goalY - pieceY);
 };
 
+// checks the move independent of the piece type
+bool Board::movePrecheck(Move move) {
+    unsigned char pieceChar = get(move.from);
+    unsigned char goalChar = get(move.to);
+
+    if (goalChar == 0) return false; // work out of Town?
+    if (pieceChar == '.') return false; // moving an empty square?
+    if (isBlack(pieceChar) == isBlack(goalChar) && goalChar != '.') return false; // capture your own pieces
+
+    betweenMove(move);
+    bool isAttacked;
+    if (std::tolower(pieceChar) == 'k') isAttacked = isAtackedByOpponent(move.to, isWhite(pieceChar));
+    else isAttacked = isAtackedByOpponent(KPos[!isBlack(pieceChar)], isWhite(pieceChar));
+    betweenMove({move.to, move.from}, goalChar);
+    if (isAttacked) return false;
+
+    return true;
+};
+
+void Board::setBoardState(unsigned char newState[8][8]) {
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 8; ++x) {
+            boardState[y][x] = newState[y][x];
+        }
+    }
+    castlesPossible[Castles::LONG_BLACK] = get({0,0}) == 'r';
+    castlesPossible[Castles::SHORT_BLACK] = get({7,0}) == 'r';
+    castlesPossible[Castles::LONG_WHITE] = get({0,7}) == 'R';
+    castlesPossible[Castles::SHORT_WHITE] = get({7,7}) == 'R';
+}
+
+// Hurayy Finished
 bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
     unsigned char pieceChar = get(piece);
     unsigned char goalChar = get(goal);
     unsigned char pieceType = std::tolower(pieceChar);
 
-    bool pieceIsBlack = isLower(pieceChar);
+    bool pieceIsBlack = isBlack(pieceChar);
     bool pieceIsWhite = !pieceIsBlack;
-    bool goalIsBlack = isLower(goalChar);
+    bool goalIsBlack = isBlack(goalChar);
     bool goalIsWhite = !goalIsBlack;
 
     bool isDifX = (piece.x != goal.x);
@@ -30,48 +70,42 @@ bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
     ChessVector change = changeVector.normToInt();
 
     if (gameState != ONGOING) return false; // game is over
-
-    if (pieceChar == '.') return false; // moving an empty square?
-
-    if (pieceIsBlack && goalIsBlack && goalChar != '.') return false; // capture your own pieces
-    if (pieceIsWhite && goalIsWhite && goalChar != '.') return false;
-
-    if (activePlayer && pieceIsBlack) return false; // not your turn
-    if (!activePlayer && pieceIsWhite) return false;
-
-    if (!isDifX && !isDifY) return false; // piece captures itself
+    if (activePlayer == isBlack(pieceChar)) return false; // not your turn
+    if( !movePrecheck({piece, goal}) ) return false;
 
     // check if still in Check
-    set(piece, '.');
-    set(goal, pieceChar);
+    betweenMove({piece, goal});
     bool isAttacked;
-    if (pieceType == 'k') isAttacked = isAtackedByOpponent(goal);
-    else isAttacked = isAtackedByOpponent(KPos[activePlayer]);
-    set(piece, pieceChar);
-    set(goal, goalChar);
+    if (pieceType == 'k') isAttacked = isAtackedByOpponent(goal, activePlayer);
+    else isAttacked = isAtackedByOpponent(KPos[activePlayer], activePlayer);
+    betweenMove({goal, piece}, goalChar);
     if (isAttacked) return false;
 
     switch (pieceType) {
         // king
         case 'k':
-        if (isAtackedByOpponent(goal)){return false;}
-        // wants to castle WHITE CANNOT CASTLE FIX FIX FIX EROOR AAAAAAAAAHHHHHHHHHHHHHHHHHHHHHHHH
+        if (isAtackedByOpponent(goal, activePlayer)){
+            std::cout << "attacked" << std::endl;
+            return false;
+        }
+        // wants to castle
         if (dist.x == 2 && dist.y == 0) {
-            if (isAtackedByOpponent(piece) ||
-                isAtackedByOpponent(piece + change) ||
-                isAtackedByOpponent(goal) ||
+            if (isAtackedByOpponent(piece, activePlayer) ||
+                isAtackedByOpponent(piece + change, activePlayer) ||
+                isAtackedByOpponent(goal, activePlayer) ||
                 get(piece + change) != '.' ||
                 get(goal) != '.') {
                 return false;
             }
             // short castles
             if (change.x == 1) {
-                if(!castlesPossible[Castles::SHORT_BLACK + activePlayer])
+                if(!castlesPossible[Castles::SHORT_BLACK + activePlayer]) {
                     return false;
+                }
             }
             // long castles
             else if (!castlesPossible[Castles::LONG_BLACK + activePlayer] ||
-                isAtackedByOpponent(goal + change) ||
+                isAtackedByOpponent(goal + change, activePlayer) ||
                 get(goal + change) != '.') {
                 return false;
             }
@@ -171,11 +205,272 @@ bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
     return true;
 }
 
-bool Board::isAtackedByOpponent(ChessVector square) {
+std::vector<Move> Board::getLegalMoves(ChessVector piece) {
+    unsigned char pieceChar = get(piece);
+    unsigned char pieceType = std::tolower(pieceChar);
+    std::vector<Move> moves = {};
+    static ChessVector kingDirections[8] = {{1, 0}, {1, 1}, {0, 1}, {-1, 0}, {-1, -1}, {0, -1}, {-1, 1}, {1, -1}};
+    static ChessVector rookDirections[4] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+    static ChessVector knightDirections[8] = {{2, 1}, {1, 2}, {-2, 1}, {-1, 2}, {2, -1}, {1, -2}, {-2, -1}, {-1, -2}};
+    static ChessVector bishopDirections[4] = {{1, 1}, {-1, 1}, {-1, -1}, {1, -1}};
+    int pawnDirection = (2 * isBlack(pieceChar) - 1);
+    int pawnDoubleMoveRow = 1 + isWhite(pieceChar) * 5;
+    Move move = {{0, 0}, {0, 0}};
+    switch (pieceType) {
+        case 'k':
+        move = {piece, piece};
+        for (ChessVector direction : kingDirections) {
+            move = {piece, piece + direction};
+            if (movePrecheck(move)) {
+                moves.emplace_back(move);
+            }
+        }
+        move.to = piece.add(2, 0);
+        if (castlesPossible[SHORT_BLACK + isWhite(pieceChar)] && movePrecheck(move) &&
+            get(move.to) == '.' && get(piece.add(1, 0)) == '.' &&
+            !isAtackedByOpponent(piece, isWhite(pieceChar)) &&
+            !isAtackedByOpponent(move.to, isWhite(pieceChar)) &&
+            !isAtackedByOpponent(piece.add(1, 0), isWhite(pieceChar)))
+            moves.emplace_back(move);
+        move.to = piece.add(-2, 0);
+        if (castlesPossible[LONG_BLACK + isWhite(pieceChar)]  && movePrecheck(move) &&
+            get(piece.add(-1,0)) == '.' && get(move.to) == '.' && get(piece.add(-3,0)) == '.' &&
+            !isAtackedByOpponent(piece, isWhite(pieceChar)) &&
+            !isAtackedByOpponent(piece.add(-1,0), isWhite(pieceChar)) &&
+            !isAtackedByOpponent(move.to, isWhite(pieceChar)))
+            moves.emplace_back(move);
+        break;
+        case 'r':
+        for (ChessVector change : rookDirections) {
+            for (int i = 1; i < 8; ++i) {
+                Move move = {piece, piece + change * i};
+                if (movePrecheck(move)) {
+                    moves.emplace_back(move);
+                }
+                if (get(move.to) != '.') {
+                    break;
+                }
+            }
+        }
+        break;
+
+        case 'b':
+        for (ChessVector change : bishopDirections) {
+            for (int i = 1; i < 8; ++i) {
+                Move move = {piece, piece + change * i};
+                if (movePrecheck(move)) {
+                    moves.emplace_back(move);
+                }
+                if (get(move.to) != '.') {
+                    break;
+                }
+            }
+        }
+        break;
+
+        case 'q':
+        for (ChessVector change : bishopDirections) {
+            for (int i = 1; i < 8; ++i) {
+                Move move = {piece, piece + change * i};
+                if (movePrecheck(move)) {
+                    moves.emplace_back(move);
+                }
+                if (get(move.to) != '.') {
+                    break;
+                }
+            }
+        }
+        for (ChessVector change : rookDirections) {
+            for (int i = 1; i < 8; ++i) {
+                Move move = {piece, piece + change * i};
+                if (movePrecheck(move)) {
+                    moves.emplace_back(move);
+                }
+                if (get(move.to) != '.') {
+                    break;
+                }
+            }
+        }
+        break;
+
+        case 'n':
+        for (ChessVector direction : knightDirections) {
+            Move move = {piece, piece + direction};
+            if (movePrecheck(move)) {
+                moves.emplace_back(move);
+            }
+        }
+        break;
+
+        case 'p':
+        Move move = {piece, piece.add(0, pawnDirection)};
+        bool noPieceInFront = get(move.to) == '.';
+        if (movePrecheck(move) && noPieceInFront)
+            moves.emplace_back(move);
+        move.to = {piece.add(0, pawnDirection * 2)};
+        if (movePrecheck(move) && get(move.to) == '.' && noPieceInFront && piece.y == pawnDoubleMoveRow )
+            moves.emplace_back(move);
+
+        move.to = {piece.add(1, pawnDirection)};
+        if (movePrecheck(move) && (get(move.to) != '.' || (enPassantPossible && enPassant == piece.add(1, 0)))) {
+            moves.emplace_back(move);
+        }
+
+        move.to = {piece.add(-1, pawnDirection)};
+        if (movePrecheck(move) && (get(move.to) != '.' || (enPassantPossible && enPassant == piece.add(-1, 0)))) {
+            moves.emplace_back(move);
+        }
+
+        break;
+    }
+    return moves;
+}
+
+bool Board::existsLegalMove(bool checkedForActivePlayer) {
+    unsigned char piece;
+    for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 8; ++x) {
+            piece = get({x,y});
+            if (piece != '.' && piece != 0 && isWhite(piece) == checkedForActivePlayer) {
+                if (existsLegalMove({x, y})){
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+bool Board::existsLegalMove(ChessVector piece) {
+    unsigned char pieceChar = get(piece);
+    unsigned char pieceType = std::tolower(pieceChar);
+    static ChessVector kingDirections[8] = {{1, 0}, {1, 1}, {0, 1}, {-1, 0}, {-1, -1}, {0, -1}, {-1, 1}, {1, -1}};
+    static ChessVector rookDirections[4] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+    static ChessVector knightDirections[8] = {{2, 1}, {1, 2}, {-2, 1}, {-1, 2}, {2, -1}, {1, -2}, {-2, -1}, {-1, -2}};
+    static ChessVector bishopDirections[4] = {{1, 1}, {-1, 1}, {-1, -1}, {1, -1}};
+    int pawnDirection = (2 * isBlack(pieceChar) - 1);
+    int pawnDoubleMoveRow = 1 + isWhite(pieceChar) * 5;
+    Move move = {{0, 0}, {0, 0}};
+    switch (pieceType) {
+        case 'k':
+        move = {piece, piece};
+        for (ChessVector direction : kingDirections) {
+            move = {piece, piece + direction};
+            if (movePrecheck(move)) {
+                return true;
+            }
+        }
+        move.to = piece.add(2, 0);
+        if (castlesPossible[SHORT_BLACK + isWhite(pieceChar)] && movePrecheck(move) &&
+            get(move.to) == '.' && get(piece.add(1, 0)) == '.' &&
+            !isAtackedByOpponent(piece, isWhite(pieceChar)) &&
+            !isAtackedByOpponent(move.to, isWhite(pieceChar)) &&
+            !isAtackedByOpponent(piece.add(1, 0), isWhite(pieceChar)))
+            return true;
+        move.to = piece.add(-2, 0);
+        if (castlesPossible[LONG_BLACK + isWhite(pieceChar)]  && movePrecheck(move) &&
+            get(piece.add(-1,0)) == '.' && get(move.to) == '.' && get(piece.add(-3,0)) == '.' &&
+            !isAtackedByOpponent(piece, isWhite(pieceChar)) &&
+            !isAtackedByOpponent(piece.add(-1,0), isWhite(pieceChar)) &&
+            !isAtackedByOpponent(move.to, isWhite(pieceChar)))
+            return true;
+        break;
+        case 'r':
+        for (ChessVector change : rookDirections) {
+            for (int i = 1; i < 8; ++i) {
+                Move move = {piece, piece + change * i};
+                if (movePrecheck(move)) {
+                    return true;
+                }
+                if (get(move.to) != '.') {
+                    break;
+                }
+            }
+        }
+        break;
+
+        case 'b':
+        for (ChessVector change : bishopDirections) {
+            for (int i = 1; i < 8; ++i) {
+                Move move = {piece, piece + change * i};
+                if (movePrecheck(move)) {
+                    return true;
+                }
+                if (get(move.to) != '.') {
+                    break;
+                }
+            }
+        }
+        break;
+
+        case 'q':
+        for (ChessVector change : bishopDirections) {
+            for (int i = 1; i < 8; ++i) {
+                Move move = {piece, piece + change * i};
+                if (movePrecheck(move)) {
+                    return true;
+                }
+                if (get(move.to) != '.') {
+                    break;
+                }
+            }
+        }
+        for (ChessVector change : rookDirections) {
+            for (int i = 1; i < 8; ++i) {
+                Move move = {piece, piece + change * i};
+                if (movePrecheck(move)) {
+                    return true;
+                }
+                if (get(move.to) != '.') {
+                    break;
+                }
+            }
+        }
+        break;
+
+        case 'n':
+        for (ChessVector direction : knightDirections) {
+            Move move = {piece, piece + direction};
+            if (movePrecheck(move)) {
+                return true;
+            }
+        }
+        break;
+
+        case 'p':
+        Move move = {piece, piece.add(0, pawnDirection)};
+        bool noPieceInFront = get(move.to) == '.';
+        if (movePrecheck(move) && noPieceInFront)
+            return true;
+        move.to = {piece.add(0, pawnDirection * 2)};
+        if (movePrecheck(move) && get(move.to) == '.' && noPieceInFront && piece.y == pawnDoubleMoveRow )
+            return true;
+
+        move.to = {piece.add(1, pawnDirection)};
+        if (movePrecheck(move) && (get(move.to) != '.' || (enPassantPossible && enPassant == piece.add(1, 0)))) {
+            return true;
+        }
+
+        move.to = {piece.add(-1, pawnDirection)};
+        if (movePrecheck(move) && (get(move.to) != '.' || (enPassantPossible && enPassant == piece.add(-1, 0)))) {
+            return true;
+        }
+        break;
+    }
+
+    return false;
+
+}
+
+bool Board::hasTurn(ChessVector piece){
+    return isWhite(get(piece)) == activePlayer;
+}
+
+bool Board::isAtackedByOpponent(ChessVector square, bool checkedForActivePlayer) {
     ChessVector watchDog = {0,0};
     unsigned char p;
     // check K-Night
-    ChessVector knightDirections[8]={{1,2},{1,-2},{-1,-2},{-1,2},{2,1},{-2,1},{-2,-1},{-2,1}};for(ChessVector Direction:knightDirections){p=get(square+Direction);if(p==0)continue;if(activePlayer==isLower(p)&&std::tolower(p)=='n')return true;}
+    ChessVector knightDirections[8]={{1,2},{1,-2},{-1,-2},{-1,2},{2,1},{-2,1},{-2,-1},{-2,1}};for(ChessVector Direction:knightDirections){p=get(square+Direction);if(p==0)continue;if(activePlayer==isBlack(p)&&std::tolower(p)=='n')return true;}
     // check "THE ROOOOOOK!" - Levy Rozman
     ChessVector rookDirections[4] = {{0,1},{0,-1},{1,0},{-1,0}};
     for (ChessVector Direction : rookDirections) {
@@ -185,7 +480,7 @@ bool Board::isAtackedByOpponent(ChessVector square) {
         }
         p = get(watchDog);
         if (p == 0) continue;
-        if (activePlayer == isLower(p)) {
+        if (checkedForActivePlayer == isBlack(p)) {
             if (std::tolower(p) == 'r') return true;
             if (std::tolower(p) == 'q') return true;
         }
@@ -199,7 +494,7 @@ bool Board::isAtackedByOpponent(ChessVector square) {
         }
         p = get(watchDog);
         if (p == 0) continue;
-        if (activePlayer == isLower(p)) {
+        if (checkedForActivePlayer == isBlack(p)) {
             if (std::tolower(p) == 'b') return true;
             if (std::tolower(p) == 'q') return true;
         }
@@ -208,26 +503,26 @@ bool Board::isAtackedByOpponent(ChessVector square) {
     for (ChessVector Direction : rookDirections) {
         p = get(square + Direction);
         if (p == 0) continue;
-        if (activePlayer == isLower(p) && std::tolower(p) == 'k') return true;
+        if (checkedForActivePlayer == isBlack(p) && std::tolower(p) == 'k') return true;
     }
     for (ChessVector Direction : BishopDirections) {
         p = get(square + Direction);
         if (p == 0) continue;
-        if (activePlayer == isLower(p) && std::tolower(p) == 'k') return true;
+        if (checkedForActivePlayer == isBlack(p) && std::tolower(p) == 'k') return true;
     }
     // Pawn (oh nooooo)
     ChessVector PawnDirections[2] = {{1,1},{-1,1}};
     for (ChessVector Direction : PawnDirections) {
-        Direction.y = 1 - activePlayer * 2;
+        Direction.y = 1 - checkedForActivePlayer * 2;
         p = get(square + Direction);
         if (p == 0) continue;
-        if (activePlayer == isLower(p) && std::tolower(p) == 'p') return true;
+        if (checkedForActivePlayer == isBlack(p) && std::tolower(p) == 'p') return true;
     }
 
     return false;
 }
 
-GameState Board::movePiece(ChessVector piece, ChessVector goal, bool changeActivePlayer) {
+GameState Board::movePiece(ChessVector piece, ChessVector goal, bool changeActivePlayer, unsigned char promotedTo) {
     unsigned char p = get(piece);
     if (get(goal) == '.') {
         movesWithoutCapture++;
@@ -251,6 +546,11 @@ GameState Board::movePiece(ChessVector piece, ChessVector goal, bool changeActiv
             enPassant = goal;
             enPassantPossible = true;
         }
+        if (goal.y == 0 && isWhite(p)) {
+            p = toupper(promotedTo);
+        } else if (goal.y == 7 && isBlack(p)) {
+            p = tolower(promotedTo);
+        }
     }
 
     else if (std::tolower(p) == 'k') {
@@ -259,10 +559,10 @@ GameState Board::movePiece(ChessVector piece, ChessVector goal, bool changeActiv
         castlesPossible[LONG_BLACK + activePlayer] = false;
         ChessVector moveVec = piece.getTo(goal);
         if (std::abs(moveVec.x) == 2) {
-            betweenMove({(moveVec.x == 2) * 7, piece.y}, goal - moveVec.normToInt());
+            betweenMove({{(moveVec.x == 2) * 7, piece.y}, goal - moveVec.normToInt()});
         }
     }
-    
+
     else if (std::tolower(p) == 'r') {
         if (piece.x == 7) castlesPossible[SHORT_BLACK + activePlayer] = false;
         else if (piece.x == 0) castlesPossible[LONG_BLACK + activePlayer] = false;
@@ -273,6 +573,23 @@ GameState Board::movePiece(ChessVector piece, ChessVector goal, bool changeActiv
     if (changeActivePlayer) {
         activePlayer = !activePlayer;
     }
+    if(!existsLegalMove(activePlayer)){
+        if (isAtackedByOpponent(KPos[activePlayer], activePlayer)){
+            if (activePlayer == White){
+                std::cout << "BLACK_WINS" << std::endl;
+                gameState = BLACK_WINS;
+                return BLACK_WINS;
+            }
+            std::cout << "WHITE_WINS" << std::endl;
+            gameState = WHITE_WINS;
+            return WHITE_WINS;
+        } else {
+            std::cout << "DRAWWAWWWWWWWWWWW" << std::endl;
+            gameState = DRAW;
+            return DRAW;
+        }
+    }
+
     return ONGOING;
 }
 
@@ -281,7 +598,7 @@ inline void Board::killPiece(ChessVector piece) {
 }
 
 
-inline unsigned char Board::get(ChessVector piece) {
+unsigned char Board::get(ChessVector piece) {
     if (piece.x > 7 || piece.x < 0
         || piece.y > 7 || piece.y < 0) {
         return 0;
@@ -294,21 +611,19 @@ inline unsigned char Board::get(ChessVector piece) {
  * and returns (re)moved piece
  *
  */
-inline unsigned char Board::betweenMove(ChessVector from, ChessVector to) {
-    unsigned char killed = get(to);
-    set(to, get(from));
-    set(from, '.');
-    return killed;
-}
-/*
- *
-@returns killed piece→ int**********/
-inline unsigned char Board::betweenMove(ChessVector from, ChessVector to, unsigned char replacedBy) {
-    unsigned char killed = get(to);
-    set(to, get(from));
-    set(from, replacedBy);
-    return killed;
-}
+ inline unsigned char Board::betweenMove(Move move) {
+     unsigned char killed = get(move.to);
+     set(move.to, get(move.from));
+     set(move.from, '.');
+     return killed;
+ }
+
+ inline unsigned char Board::betweenMove(Move move, unsigned char replacedBy) {
+     unsigned char killed = get(move.to);
+     set(move.to, get(move.from));
+     set(move.from, replacedBy);
+     return killed;
+ }
 
 inline void Board::set(ChessVector piece, unsigned char type){
     boardState[piece.y][piece.x] = type;
