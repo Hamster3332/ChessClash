@@ -8,8 +8,24 @@ void deprecationWarn(std::string func) {
     std::cout << "Function Deprecated: " << func << std::endl;
 }
 
-void initiate() {
-    file.open("Loggs.json");
-    file << "{}";
+void logInitiate() {
+    file.open("Logs.json");
+    file << "[0";
+}
+
+void logEnter(std::string func){
+    file << ",\n{\"" << func << "\": [ 0 ";
+}
+
+void logExit(std::string Reason){
+    file << ",\"ExitReason: " << Reason <<"\"]} ";
+}
+
+void logInfo(std::string Info){
+    file << ",\"Info: " << Info << "\"";
+}
+
+void logClose(){
+    file << "]";
     file.close();
 }

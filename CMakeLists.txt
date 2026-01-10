@@ -30,9 +30,17 @@ add_library(ui
 
 target_link_libraries(ui PUBLIC core sfml-graphics sfml-window sfml-system)
 
+# ----engines----
+add_library(player
+    src/engines/player.cpp
+    src/engines/player.h
+)
+
+target_link_libraries(player PUBLIC core)
 
 target_include_directories(core PUBLIC src)
 target_include_directories(ui PUBLIC src)
+target_include_directories(player PUBLIC src)
 
 
 add_executable(ChessClash
@@ -46,6 +54,7 @@ target_link_libraries(ChessClash
     PRIVATE
         ui
         core
+        player
         sfml-graphics
         sfml-window
         sfml-system

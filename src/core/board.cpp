@@ -22,20 +22,23 @@ int manhattanDistance(int pieceX, int pieceY, int goalX, int goalY) {
 
 // checks the move independent of the piece type
 bool Board::movePrecheck(Move move) {
+    logEnter("movePrecheck");
     unsigned char pieceChar = get(move.from);
     unsigned char goalChar = get(move.to);
 
-    if (goalChar == 0) return false; // work out of Town?
-    if (pieceChar == '.') return false; // moving an empty square?
-    if (isBlack(pieceChar) == isBlack(goalChar) && goalChar != '.') return false; // capture your own pieces
+    if (goalChar == 0) {logExit("Doesn't Work out of Town -> false"); return false;} // work out of Town?
+    if (pieceChar == '.') {logExit("Can't Move Empty Square -> false"); return false;} // moving an empty square?
+    if (isBlack(pieceChar) == isBlack(goalChar) && goalChar != '.')
+        {logExit("Can't capture your own pieces -> false"); return false;} // capture your own pieces
 
     betweenMove(move);
     bool isAttacked;
     if (std::tolower(pieceChar) == 'k') isAttacked = isAtackedByOpponent(move.to, isWhite(pieceChar));
-    else isAttacked = isAtackedByOpponent(KPos[!isBlack(pieceChar)], isWhite(pieceChar));
+    else isAttacked = isAtackedByOpponent(KPos[isWhite(pieceChar)], isWhite(pieceChar));
     betweenMove({move.to, move.from}, goalChar);
-    if (isAttacked) return false;
+    if (isAttacked) {logExit("King Attacked after move -> false"); return false;}
 
+    logExit("Checks Out -> true");
     return true;
 };
 
@@ -53,6 +56,7 @@ void Board::setBoardState(unsigned char newState[8][8]) {
 
 // Hurayy Finished
 bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
+    logEnter("isLegalMove");
     unsigned char pieceChar = get(piece);
     unsigned char goalChar = get(goal);
     unsigned char pieceType = std::tolower(pieceChar);
@@ -69,9 +73,9 @@ bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
     ChessVector changeVector = piece.getTo(goal);
     ChessVector change = changeVector.normToInt();
 
-    if (gameState != ONGOING) return false; // game is over
-    if (activePlayer == isBlack(pieceChar)) return false; // not your turn
-    if( !movePrecheck({piece, goal}) ) return false;
+    if (gameState != ONGOING) {logExit("Game over -> false"); return false;}
+    if (activePlayer == isBlack(pieceChar)) {logExit("Moved wrong Color -> false"); return false;}// not your turn
+    if( !movePrecheck({piece, goal}) ) {logExit("Failed Precheck -> false"); return false;}
 
     // check if still in Check
     betweenMove({piece, goal});
@@ -79,15 +83,11 @@ bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
     if (pieceType == 'k') isAttacked = isAtackedByOpponent(goal, activePlayer);
     else isAttacked = isAtackedByOpponent(KPos[activePlayer], activePlayer);
     betweenMove({goal, piece}, goalChar);
-    if (isAttacked) return false;
+    if (isAttacked) {logExit("King Attacked after move -> false"); return false;}
 
     switch (pieceType) {
         // king
         case 'k':
-        if (isAtackedByOpponent(goal, activePlayer)){
-            std::cout << "attacked" << std::endl;
-            return false;
-        }
         // wants to castle
         if (dist.x == 2 && dist.y == 0) {
             if (isAtackedByOpponent(piece, activePlayer) ||
@@ -95,36 +95,37 @@ bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
                 isAtackedByOpponent(goal, activePlayer) ||
                 get(piece + change) != '.' ||
                 get(goal) != '.') {
-                return false;
+                logExit("King can't castle!! -> false"); return false;
             }
             // short castles
             if (change.x == 1) {
                 if(!castlesPossible[Castles::SHORT_BLACK + activePlayer]) {
-                    return false;
+                    logExit("King cant Short castle!! -> false"); return false;
                 }
             }
             // long castles
             else if (!castlesPossible[Castles::LONG_BLACK + activePlayer] ||
                 isAtackedByOpponent(goal + change, activePlayer) ||
                 get(goal + change) != '.') {
-                return false;
+                logExit("King cant Long castle!! -> false"); return false;
             }
 
         }
-        else if (dist.x > 1 || dist.y > 1) // moved further than 1 square
-            return false;
+        else if (dist.x > 1 || dist.y > 1) { // moved further than 1 square
+            logExit("King can only move 1 square -> false"); return false;
+        }
         break;
 
         // rook
         case 'r':
         // not orthogonal
         if (dist.x != 0 && dist.y != 0){
-            return false;
+            logExit("Rook can only move orthogonal -> false"); return false;
         }
         // check moves
         for (int i = 1; i < dist.matinnatianDist(); ++i) {
             if (get(piece + (change * i)) != '.') {
-                return false;
+                logExit("Rook cant jump -> false"); return false;
             }
         }
         break;
@@ -133,12 +134,12 @@ bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
         case 'b':
         // not diagonal
         if (dist.x != dist.y) {
-            return false;
+            logExit("Bishop can only move diagonal -> false"); return false;
         }
         // check moves
         for (int i = 1; i < dist.matinnatianDist(); ++i) {
             if (get(piece + (change * i)) != '.') {
-                return false;
+                logExit("Bishop cant jump -> false"); return false;
             }
         }
         break;
@@ -149,13 +150,13 @@ bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
         if (dist.x != dist.y) {
             // not orthogonal
             if (dist.x != 0 && dist.y != 0){
-                return false;
+                logExit("Queen can only move diagonal or orthogonal -> false");return false;
             }
         }
         // check moves
         for (int i = 1; i < dist.matinnatianDist(); ++i) {
             if (get(piece + (change * i)) != '.') {
-                return false;
+                logExit("Queen cant jump -> false"); return false;
             }
         }
         break;
@@ -163,7 +164,7 @@ bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
         // knight
         case 'n':
         if (dist.manhattanDist() != 3 || dist.x > 2 || dist.y > 2) {
-            return false;
+            logExit("Knight is dumb :c -> false"); return false;
         }
         break;
 
@@ -172,36 +173,38 @@ bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
         // wants to move 2 forward
         if (dist.y == 2) {
             // wants to move to side
-            if (dist.x != 0) return false;
+            if (dist.x != 0) {logExit("Pawn cant side step -> false"); return false;}
             // so like the board is counted from top to bottom, and 6 would be
             // the 7th row, where the pawn can move 2 squares
             // check if it can move 2
-            if (pieceIsWhite && piece.y < 6) return false;
-            if (pieceIsBlack && piece.y > 2) return false;
+            if (pieceIsWhite && piece.y < 6) {logExit("Pawn can only go 2 spaces under row 6 -> false"); return false;}
+            if (pieceIsBlack && piece.y > 2) {logExit("Pawn can only go 2 spaces over row 2 -> false"); return false;}
 
         // wants to move 1 forward
         } else if (dist.y == 1) {
             // moves in the correct directory
             if (pieceIsWhite && change.y != -1) {
+                logExit("Pawn moves in wrong direction -> false");
                 return false;
             }
             else if (pieceIsBlack && change.y != 1) {
+                logExit("Pawn moves in wrong direction -> false");
                 return false;
             }
 
             // wants to Side step
-            if (dist.x > 1) return false;
+            if (dist.x > 1) {logExit("Pawn still cant side step -> false"); return false;}
             // wants to advance-d lol
-            else if (dist.x == 0 && get(goal) != '.') return false;
+            else if (dist.x == 0 && get(goal) != '.') {logExit("Pawn is blocked -> false"); return false;}
             // wants to capture
             else if (dist.x == 1 && get(goal) == '.'){
                 if (!enPassantPossible || goal.sub(0, change.y) != enPassant)
-                    return false;
+                    {logExit("Pawn cant en Passant -> false"); return false;}
             }
-        } else return false;
+        } else {logExit("Pawn Out -> true"); return false;}
         break;
     }
-
+    logExit("Checks Out -> true");
     return true;
 }
 
@@ -465,6 +468,9 @@ bool Board::existsLegalMove(ChessVector piece) {
 bool Board::hasTurn(ChessVector piece){
     return isWhite(get(piece)) == activePlayer;
 }
+bool Board::isPromotion(Move move){
+    return tolower(get(move.from)) == 'p' && (move.to.y == 0 || move.to.y == 7);
+}
 
 bool Board::isAtackedByOpponent(ChessVector square, bool checkedForActivePlayer) {
     ChessVector watchDog = {0,0};
@@ -547,9 +553,9 @@ GameState Board::movePiece(ChessVector piece, ChessVector goal, bool changeActiv
             enPassantPossible = true;
         }
         if (goal.y == 0 && isWhite(p)) {
-            p = toupper(promotedTo);
+            p = std::toupper(promotedTo);
         } else if (goal.y == 7 && isBlack(p)) {
-            p = tolower(promotedTo);
+            p = std::tolower(promotedTo);
         }
     }
 

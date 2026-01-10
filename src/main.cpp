@@ -6,11 +6,14 @@
 #include "constants.h"
 
 #include "core/board.h"
+#include "core/logger.h"
+#include "engines/player.h"
 #include "ui/boardRender.h"
 
 
 int main()
 {
+    logInitiate();
     srand(time(0)); // Make Random random
 
     auto window = sf::RenderWindow(sf::VideoMode(WINDOW_SIZE), "Chess Clash"); // create Window
@@ -27,9 +30,17 @@ int main()
 
     sf::Vector2i clickPos = {};
     sf::Vector2i mousePos = {};
+    onClickReturn clickReturn = onClickReturn();
+
+    Player first(board, renderBoard);
+    Player second(board, renderBoard);
+    bool firstHasTurn = true;
+    first.startTurn({{-1, -1}, {-1, -1}});
+    Move lastMove = {{-1, -1}, {-1, -1}};
 
     while (window.isOpen()) // mainLoop
     {
+        clickReturn = onClickReturn();
         while (const std::optional event = window.pollEvent())
         {
             if (event->is<sf::Event::Closed>())
@@ -41,7 +52,7 @@ int main()
                 if (mouseButtonPressed->button == sf::Mouse::Button::Left)
                 {
                     clickPos = {mouseButtonPressed->position.x, mouseButtonPressed->position.y};
-                    renderBoard.onClick(clickPos, true, board);
+                    clickReturn = renderBoard.onClick(clickPos, true, board);
                 }
             }
             else if (const auto* mouseButtonReleased = event->getIf<sf::Event::MouseButtonReleased>())
@@ -49,7 +60,7 @@ int main()
                 if (mouseButtonReleased->button == sf::Mouse::Button::Left)
                 {
                     clickPos = {mouseButtonReleased->position.x, mouseButtonReleased->position.y};
-                    renderBoard.onClick(clickPos, false, board);
+                    clickReturn = renderBoard.onClick(clickPos, false, board);
                 }
             }
             if (const auto* mouseMoved = event->getIf<sf::Event::MouseMoved>())
@@ -60,10 +71,26 @@ int main()
 
         }
 
+        if (clickReturn.hasMoved){
+            lastMove = first.calculate(clickReturn.move);
+            if (lastMove.from.x != -1){
+                first.startTurn(lastMove);
+            }
+        }
+
+        if (clickReturn.hasPromoted){
+            lastMove = first.promotionResult(clickReturn.selectedPromotion);
+            if (lastMove.from.x != -1){
+                first.startTurn(lastMove);
+            }
+        }
+
+
         window.clear();
 
         renderBoard.draw(textures, board);
 
         window.display();
     }
+    logClose();
 }

@@ -2,14 +2,19 @@
 #define PLAYER_H
 
 #include "../core/board.h"
+#include "../ui/boardRender.h"
 
 class Player {
 public:
-    Player(Board& board);
+    Player(Board& board, RenderBoard& renderer);
     void startTurn(Move LastTurn);
-    bool calculate(Move playerMove);
-    void promotionResult(unsigned char piece);
+    Move calculate(Move playerMove);
+    Move promotionResult(unsigned char piece);
     bool isReady();
+
+    Board* curBoard;
+    RenderBoard* curRenderer;
+    Move promotionDelayedMove = {{-1, -1}, {-1, -1}};
 };
 
 #endif

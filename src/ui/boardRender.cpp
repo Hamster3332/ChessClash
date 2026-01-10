@@ -6,6 +6,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <iostream>
+#include <iterator>
 #include <vector>
 #include "boardRender.h"
 
@@ -90,36 +91,24 @@ void RenderBoard::draw(TextureManager &textures, Board &board) {
 
     if (showPromotionWindow) {
         sf::RectangleShape outerRect = sf::RectangleShape(promotionButtonSize);
-        outerRect.setPosition(promotionWindowPos);
-        outerRect.scale({1.2f, 1.2f});
-        outerRect.setFillColor(sf::Color(100, 100, 100));
+        sf::RectangleShape innerRect = sf::RectangleShape({promotionButtonSize.x - 2 * promoButtonMargin, promotionButtonSize.y - 2 * promoButtonMargin});
+        outerRect.setFillColor({120, 120, 120});
+        innerRect.setFillColor({80, 80, 80});
+        outerRect.setPosition(promotionOuterPos);
+        innerRect.setPosition(promotionWindowPos);
+
         window.draw(outerRect);
-
-
-        sf::RectangleShape rect = sf::RectangleShape(promotionButtonSize);
-        rect.setPosition(promotionWindowPos);
-        rect.setFillColor(sf::Color(50, 50, 50));
-        window.draw(rect);
+        window.draw(innerRect);
 
         sprite.scale({promoButtonScalar, promoButtonScalar});
 
-        sprite.setTexture(textures.get('N'));
-        sprite.setPosition({promotionWindowPos.x + promoButtonMargin, promotionWindowPos.y + promoButtonMargin});
-        window.draw(sprite);
 
-        sprite.setTexture(textures.get('B'));
-        sprite.setPosition({promotionWindowPos.x + promoButtonMargin, promotionWindowPos.y + promoButtonMargin + promoButtonUnit});
-        window.draw(sprite);
-
-        sprite.setTexture(textures.get('R'));
-        sprite.setPosition({promotionWindowPos.x + promoButtonMargin, promotionWindowPos.y + promoButtonMargin + 2 * promoButtonUnit});
-        window.draw(sprite);
-
-        sprite.setTexture(textures.get('Q'));
-        sprite.setPosition({promotionWindowPos.x + promoButtonMargin, promotionWindowPos.y + promoButtonMargin + 3 * promoButtonUnit});
-        window.draw(sprite);
+        for (int i = 0; i < 4; ++i) {
+            sprite.setTexture(textures.get(promotionPieces[i]));
+            sprite.setPosition({promotionInnerPos.x, promotionInnerPos.y + i * promoButtonUnit});
+            window.draw(sprite);
+        }
     }
-    sprite.scale({1.f, 1.f});
 }
 
 void RenderBoard::onMouseMove(TextureManager &textures, sf::Vector2i &mousePos) {
@@ -128,19 +117,40 @@ void RenderBoard::onMouseMove(TextureManager &textures, sf::Vector2i &mousePos) 
 
 onClickReturn RenderBoard::onClick(sf::Vector2i &clickPos, bool isClicking, Board &board) {
     static sf::Vector2f relClickPos;
-    onClickReturn funcReturn(false, {{0,0},{0,0}}, false, '.');
+    onClickReturn funcReturn = onClickReturn();
     if (showPromotionWindow) {
-        relClickPos = {clickPos.x - boardPos.x, clickPos.y - boardPos.y};
+        relClickPos = {clickPos.x - promotionInnerPos.x, clickPos.y - promotionInnerPos.y};
+        relClickPos.x /= promoButtonUnit;
+        relClickPos.y /= promoButtonUnit;
+        if (relClickPos.x < 0.f ||
+            relClickPos.y < 0.f ||
+            relClickPos.x >= 4.f ||
+            relClickPos.y >= 4.f) {
+                funcReturn.hasPromoted = false;
+                funcReturn.selectedPromotion = 'q';
+                pieceSelected = false;
+        }
+        else {
+            int promotionCharThing = (int)relClickPos.y;
+            funcReturn.selectedPromotion = promotionPieces[promotionCharThing];
+            
+            if (board.activePlayer) {
+                funcReturn.selectedPromotion = std::toupper(promotionPieces[promotionCharThing]);
+            }
+            
+            funcReturn.hasPromoted = true;
+        }
         return funcReturn;
     }
+    
     relClickPos = {clickPos.x - boardPos.x, clickPos.y - boardPos.y};
     relClickPos.x /= (boardSize / 8.f);
     relClickPos.y /= (boardSize / 8.f);
 
     if (relClickPos.x < 0.f ||
         relClickPos.y < 0.f ||
-        relClickPos.x > 8.f ||
-        relClickPos.y > 8.f)
+        relClickPos.x >= 8.f ||
+        relClickPos.y >= 8.f)
     {
         pieceSelected = false;
         return funcReturn;
@@ -160,11 +170,10 @@ onClickReturn RenderBoard::onClick(sf::Vector2i &clickPos, bool isClicking, Boar
     } else if (pieceSelected) {
         pieceSelected = false;
         possibleMoves = {};
-        if (board.isLegalMove(selectedPiece, click)) {
-            movePiece({selectedPiece, click}, board, 'q');
-            funcReturn.hasMoved = true;
-            funcReturn.move = {selectedPiece, click};
-        }
+        //if (board.isLegalMove(selectedPiece, click)) {
+        //    movePiece({selectedPiece, click}, board, 'q');
+        funcReturn.hasMoved = true;
+        funcReturn.move = {selectedPiece, click};
     }
     return funcReturn;
 }
@@ -173,4 +182,10 @@ void RenderBoard::movePiece(Move move, Board &board, unsigned char promotedTo){
     lastOrigX = move.from.x;
     lastOrigY = move.from.y;
     board.movePiece(move.from, move.to, true, promotedTo);
+}
+
+void RenderBoard::setPromotionWindowPos(sf::Vector2f pos) {
+    promotionWindowPos = pos;
+    promotionInnerPos = {promotionWindowPos.x + promoButtonMargin, promotionWindowPos.y + promoButtonMargin};
+    promotionOuterPos = {promotionWindowPos.x - promoButtonMargin, promotionWindowPos.y - promoButtonMargin};
 }

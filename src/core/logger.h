@@ -4,6 +4,14 @@
 
 void deprecationWarn(std::string func);
 
-void initiate();
+void logInitiate();
+
+void logEnter(std::string func);
+
+void logExit(std::string Reason);
+
+void logInfo(std::string Info);
+
+void logClose();
 
 #endif

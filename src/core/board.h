@@ -2,6 +2,7 @@
 #define BOARD_H
 
 #include "chessVector.h"
+#include "logger.h"
 #include <vector>
 
 inline bool isBlack(unsigned char c);
@@ -64,6 +65,7 @@ public:
     std::vector<Move> getLegalMoves(ChessVector piece);
     bool existsLegalMove(ChessVector piece);
     bool existsLegalMove(bool checkedForActivePlayer);
+    bool isPromotion(Move move);
 
     GameState movePiece(ChessVector piece, ChessVector goal, bool changeActivePlayer, unsigned char promotedTo);
     bool isAtackedByOpponent(ChessVector square, bool checkedForActivePlayer);
