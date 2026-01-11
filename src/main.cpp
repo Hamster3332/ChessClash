@@ -7,12 +7,14 @@
 
 #include "core/board.h"
 #include "core/logger.h"
+#include "engines/onlinePlayer.h"
 #include "engines/player.h"
 #include "ui/boardRender.h"
 
 
 int main()
 {
+
     logInitiate();
     srand(time(0)); // Make Random random
 
@@ -20,7 +22,7 @@ int main()
     window.setFramerateLimit(144);
 
     Board board; // Create Board
-    board.setBoardState(checkmateBoard);
+    board.setBoardState(standardBoard);
 
     sf::Vector2f boardPos = {(float)WINDOW_SIZE.y * 0.05f, (float)WINDOW_SIZE.y * 0.05f};
     RenderBoard renderBoard(window, boardPos);
@@ -32,6 +34,7 @@ int main()
     sf::Vector2i mousePos = {};
     onClickReturn clickReturn = onClickReturn();
 
+    OnlinePlayer player(board, renderBoard);
     Player first(board, renderBoard);
     Player second(board, renderBoard);
     bool firstHasTurn = true;
@@ -71,15 +74,23 @@ int main()
 
         }
 
-        if (clickReturn.hasMoved){
-            lastMove = first.calculate(clickReturn.move);
-            if (lastMove.from.x != -1){
-                first.startTurn(lastMove);
+        if (board.activePlayer == 1){
+            if (clickReturn.hasMoved) {
+                lastMove = first.calculate(clickReturn.move);
+                if (lastMove.from.x != -1){
+                    player.startTurn(lastMove);
+                }
+            }
+
+            if (clickReturn.hasPromoted) {
+                lastMove = first.promotionResult(clickReturn.selectedPromotion);
+                if (lastMove.from.x != -1){
+                    player.startTurn(lastMove);
+                }
             }
         }
-
-        if (clickReturn.hasPromoted){
-            lastMove = first.promotionResult(clickReturn.selectedPromotion);
+        if (board.activePlayer == 0){
+            lastMove = player.calculate();
             if (lastMove.from.x != -1){
                 first.startTurn(lastMove);
             }

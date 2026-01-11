@@ -3,13 +3,22 @@
 
 #include "chessVector.h"
 #include "logger.h"
+#include <array>
+#include <unordered_map>
 #include <vector>
 
 inline bool isBlack(unsigned char c);
 inline bool isBlack(unsigned char c);
 inline bool isWhite(unsigned char c);
 
+using BoardArray = std::array<std::array<unsigned char, 8>, 8>;
+
 int manhattanDistance(int pieceX, int pieceY, int goalX, int goalY);
+
+
+struct BoardHash {
+    std::size_t operator()(const BoardArray& b) const;
+};
 
 enum GameState {
     ONGOING = 2,
@@ -32,7 +41,7 @@ enum enPlayers {
 
 class Board {
 public:
-    unsigned char boardState[8][8] = {
+    BoardArray boardState {{
         {'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'},
         {'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'},
         {'.', '.', '.', '.', '.', '.', '.', '.'},
@@ -41,8 +50,8 @@ public:
         {'.', '.', '.', '.', '.', '.', '.', '.'},
         {'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'},
         {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'}
-    };
-
+    }};
+    
     bool activePlayer = 1; // 1 is white and 0 is black
 
     GameState gameState = ONGOING;
@@ -55,6 +64,8 @@ public:
 
     // if it is 50, its a draw
     int movesWithoutCapture = 0;
+    
+    std::unordered_map<BoardArray, int, BoardHash> repetitionCount;
 
     ChessVector enPassant = {0, 0};
     bool enPassantPossible = false;
@@ -68,9 +79,9 @@ public:
     bool isPromotion(Move move);
 
     GameState movePiece(ChessVector piece, ChessVector goal, bool changeActivePlayer, unsigned char promotedTo);
-    bool isAtackedByOpponent(ChessVector square, bool checkedForActivePlayer);
+    bool isAttackedByOpponent(ChessVector square, bool checkedForActivePlayer);
     bool hasTurn(ChessVector piece);
-    unsigned char get(ChessVector piece);
+    unsigned char get(ChessVector piece) const;
     inline void set(ChessVector piece, unsigned char type);
     inline unsigned char betweenMove(Move move);
     inline unsigned char betweenMove(Move move, unsigned char replacedBy);

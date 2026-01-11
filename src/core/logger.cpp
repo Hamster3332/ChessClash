@@ -13,19 +13,19 @@ void logInitiate() {
     file << "[0";
 }
 
-void logEnter(std::string func){
-    file << ",\n{\"" << func << "\": [ 0 ";
+void logEnter(std::string func) {
+    file << ",\n{\"" << func << "\": [0";
 }
 
 void logExit(std::string Reason){
-    file << ",\"ExitReason: " << Reason <<"\"]} ";
+    file << ", \"ExitReason: " << Reason <<"\"]}";
 }
 
 void logInfo(std::string Info){
-    file << ",\"Info: " << Info << "\"";
+    file << ", \"Info: " << Info << "\"";
 }
 
 void logClose(){
-    file << "]";
+    file << "\n]";
     file.close();
 }

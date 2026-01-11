@@ -16,7 +16,7 @@ Move Player::calculate(Move playerMove){
             curRenderer->setPromotionWindowPos({playerMove.to.x * curRenderer->cellSize + curRenderer->boardPos.x,
                 playerMove.to.y * curRenderer->cellSize + curRenderer->boardPos.y });
             promotionDelayedMove = playerMove;
-        }else{
+        } else {
             curRenderer->movePiece(playerMove, *curBoard, '.');
             return playerMove;
         }
