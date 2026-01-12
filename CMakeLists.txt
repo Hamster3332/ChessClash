@@ -34,6 +34,7 @@ target_link_libraries(ui PUBLIC core sfml-graphics sfml-window sfml-system)
 add_library(player
     src/engines/player.cpp
     src/engines/onlinePlayer.cpp
+    src/engines/random.cpp
 )
 
 target_link_libraries(player PUBLIC core)

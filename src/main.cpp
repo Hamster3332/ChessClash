@@ -3,12 +3,15 @@
 #include <SFML/Graphics.hpp>
 #include <cstdlib>
 #include <ctime>
+#include <iostream>
 #include "constants.h"
 
 #include "core/board.h"
 #include "core/logger.h"
+#include "core/playerInterface.cpp"
 #include "engines/onlinePlayer.h"
 #include "engines/player.h"
+#include "engines/random.h"
 #include "ui/boardRender.h"
 
 
@@ -34,9 +37,10 @@ int main()
     sf::Vector2i mousePos = {};
     onClickReturn clickReturn = onClickReturn();
 
-    OnlinePlayer player(board, renderBoard);
-    Player first(board, renderBoard);
-    Player second(board, renderBoard);
+    //PlayerInterface player = OnlinePlayer(board, renderBoard, enPlayers::Black);
+    E_Random bot(board, renderBoard, enPlayers::Black);
+    PlayerInterface& player = bot;
+    Player first(board, renderBoard, enPlayers::White);
     bool firstHasTurn = true;
     first.startTurn({{-1, -1}, {-1, -1}});
     Move lastMove = {{-1, -1}, {-1, -1}};
@@ -73,29 +77,26 @@ int main()
             }
 
         }
-
-        if (board.activePlayer == 1){
-            if (clickReturn.hasMoved) {
-                lastMove = first.calculate(clickReturn.move);
-                if (lastMove.from.x != -1){
-                    player.startTurn(lastMove);
-                }
-            }
-
-            if (clickReturn.hasPromoted) {
-                lastMove = first.promotionResult(clickReturn.selectedPromotion);
-                if (lastMove.from.x != -1){
-                    player.startTurn(lastMove);
-                }
-            }
+        
+        if (clickReturn.hasMoved) {
+            first.activeMove(clickReturn.move);
         }
-        if (board.activePlayer == 0){
+
+        if (clickReturn.hasPromoted) {
+            first.promotionResult(clickReturn.selectedPromotion);
+        }
+
+        if (board.gameState != GameState::ONGOING) {}
+        if (board.activePlayer == 1){
+            first.calculate();
+        }
+        else if (board.activePlayer == 0){
             lastMove = player.calculate();
+            //std::cout << lastMove.from.x << lastMove.from.y << lastMove.to.x << lastMove.to.y << std::endl;
             if (lastMove.from.x != -1){
                 first.startTurn(lastMove);
             }
         }
-
 
         window.clear();
 

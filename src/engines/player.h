@@ -3,18 +3,23 @@
 
 #include "../core/board.h"
 #include "../ui/boardRender.h"
+#include "../core/playerInterface.cpp"
+#include "../core/activePlayerInterface.cpp"
+#include <SFML/Window/Keyboard.hpp>
 
 class Player {
 public:
-    Player(Board& board, RenderBoard& renderer);
+    Player(Board& board, RenderBoard& renderer, enPlayers color);
+    void activeMove(Move currentMove);
+    void promotionResult(unsigned char piece);
     void startTurn(Move LastTurn);
-    Move calculate(Move playerMove);
-    Move promotionResult(unsigned char piece);
+    Move calculate();
     bool isReady();
 
     Board* curBoard;
     RenderBoard* curRenderer;
-    Move promotionDelayedMove = {{-1, -1}, {-1, -1}};
+    Move playerMove = {{-1, -1}, {-1, -1}};
+    unsigned char promotionPiece = '0';
 };
 
 #endif

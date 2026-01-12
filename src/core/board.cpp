@@ -1,6 +1,5 @@
 #include "board.h"
 #include "chessVector.h"
-#include <algorithm>
 #include <cctype>
 #include <cstddef>
 #include <cstdlib>
@@ -96,7 +95,7 @@ bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
     betweenMove({piece, goal});
     bool isAttacked;
     if (pieceType == 'k') isAttacked = isAttackedByOpponent(goal, activePlayer);
-    else isAttacked = isAttackedByOpponent(KPos[activePlayer], activePlayer);
+    else isAttacked = isAttackedByOpponent(KPos[activePlayer], activePlayer);   
     betweenMove({goal, piece}, goalChar);
     if (isAttacked) {logExit("King Attacked after move -> false"); return false;}
 

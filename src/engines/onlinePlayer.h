@@ -3,6 +3,8 @@
 
 #include "../core/board.h"
 #include "../ui/boardRender.h"
+#include "../ui/boardRender.h"
+#include "../core/playerInterface.cpp"
 #include <string>
 #include <thread>
 #include <bits/stdc++.h>
@@ -30,10 +32,10 @@ public:
     std::string received_message();
 };
 
-class OnlinePlayer {
+class OnlinePlayer : public PlayerInterface {
 public:
     PlayerServer serverObjekt;
-    OnlinePlayer(Board& board, RenderBoard& renderer);
+    OnlinePlayer(Board& board, RenderBoard& renderer, enPlayers color);
     ~OnlinePlayer();
     void startTurn(Move LastTurn);
     Move calculate();

@@ -100,7 +100,7 @@ void PlayerServer::Stop(){
 
 
 
-OnlinePlayer::OnlinePlayer(Board& board, RenderBoard& renderer) {
+OnlinePlayer::OnlinePlayer(Board& board, RenderBoard& renderer, enPlayers color) {
     curBoard = &board;
     curRenderer = &renderer;
     ServerThread = new std::thread(&PlayerServer::serverThread, &serverObjekt);
@@ -109,7 +109,7 @@ OnlinePlayer::OnlinePlayer(Board& board, RenderBoard& renderer) {
 
 void OnlinePlayer::startTurn(Move LastTurn){
     sendMoveStep = 1;
-    receiveMoveStep = 0;
+    receiveMoveStep = 1;
     lastMove = LastTurn;
 }
 
@@ -117,50 +117,44 @@ ChessVector StringToMove(std::string s){
     return {s.c_str()[1] - '0', s.c_str()[4] - '0'};
 }
 
-Move OnlinePlayer::calculate(){
+Move OnlinePlayer::calculate() {
     if (sendMoveStep != 0){
         //sending Move to Opponent
         switch (sendMoveStep) {
             case 1:
-            if (serverObjekt.Ready()){
-                std::cout << "send Move1" << std::endl;
+            if (serverObjekt.Ready()) {
                 serverObjekt.send_message("["+ std::to_string(lastMove.from.x) +", "+ std::to_string(lastMove.from.y) + "]");
                 sendMoveStep += 1;
             }break;
             case 2:
-            if (serverObjekt.sendDone()){
-                std::cout << "send Move2" << std::endl;
+            if (serverObjekt.sendDone()) {
                 sendMoveStep += 1;
             }break;
             case 3:
-            if (serverObjekt.Ready()){
-                std::cout << "send Move3" << std::endl;
+            if (serverObjekt.Ready()) {
                 serverObjekt.receive_message();
                 sendMoveStep += 1;
             }break;
             case 4:
-            if (serverObjekt.receiveDone()){
-                std::cout << "send Move4" << serverObjekt.received_message() << std::endl;
+            if (serverObjekt.receiveDone()) {
                 sendMoveStep += 1;
             }break;
             case 5:
-            if (serverObjekt.Ready()){
-                std::cout << "send Move5" << std::endl;
+            if (serverObjekt.Ready()) {
                 serverObjekt.send_message("["+ std::to_string(lastMove.to.x) +", "+ std::to_string(lastMove.to.y) + "]");
                 sendMoveStep += 1;
             }break;
             case 6:
-            if (serverObjekt.sendDone()){
-                std::cout << "send Move6" << std::endl;
+            if (serverObjekt.sendDone()) {
                 sendMoveStep += 1;
             }break;
             case 7:
-            if (serverObjekt.Ready()){
+            if (serverObjekt.Ready()) {
                 serverObjekt.receive_message();
                 sendMoveStep += 1;
             }break;
             case 8:
-            if (serverObjekt.receiveDone()){
+            if (serverObjekt.receiveDone()) {
                 sendMoveStep = 0;
             }break;
         }
@@ -168,46 +162,62 @@ Move OnlinePlayer::calculate(){
     }
     switch (receiveMoveStep) {
         case 0:
-        if (serverObjekt.Ready()){
+        if (serverObjekt.sendDone())receiveMoveStep += 1;
+        break;
+        case 1:
+        if (serverObjekt.Ready()) {
             serverObjekt.receive_message();
             receiveMoveStep += 1;
         }break;
-        case 1:
-        if (serverObjekt.receiveDone()){
+        case 2:
+        if (serverObjekt.receiveDone()) {
             std::cout << serverObjekt.received_message() << std::endl;
             currentMove.from = StringToMove(serverObjekt.received_message());
             receiveMoveStep += 1;
         }break;
-        case 2:
-        if (serverObjekt.Ready()){
-            serverObjekt.send_message("true");
-            receiveMoveStep += 1;
-        }break;
         case 3:
+        if (serverObjekt.Ready()) {
+            if (curBoard->existsLegalMove(currentMove.from)){
+                serverObjekt.send_message("true");
+                receiveMoveStep += 1;
+            }else{
+                serverObjekt.send_message("false");
+                receiveMoveStep = 0;
+            }
+        }break;
+        case 4:
         if (serverObjekt.sendDone())receiveMoveStep += 1;
         break;
-        case 4:
-        if (serverObjekt.Ready()){
+        case 5:
+        if (serverObjekt.Ready()) {
             serverObjekt.receive_message();
             receiveMoveStep += 1;}
         break;
-        case 5:
-        if (serverObjekt.receiveDone()){
-            std::cout << serverObjekt.received_message() << std::endl;
+        case 6:
+        if (serverObjekt.receiveDone()) {
             currentMove.to = StringToMove(serverObjekt.received_message());
             receiveMoveStep += 1;
-        }break;
-        case 6:
-        if (serverObjekt.Ready()){
-            serverObjekt.send_message("true");
-            receiveMoveStep += 1;
-        }
+        } break;
         case 7:
-        if (serverObjekt.sendDone()){
-            receiveMoveStep += 1;
+        if (serverObjekt.Ready()) {
+            if (curBoard->isLegalMove(currentMove.from, currentMove.to) || currentMove.from == currentMove.to){
+                serverObjekt.send_message("true");
+                receiveMoveStep += 1;
+            }else{
+                serverObjekt.send_message("false");
+                receiveMoveStep = 4;
+            }
+        }
+        case 8:
+        if (serverObjekt.sendDone()) {
             std::cout << std::to_string(currentMove.from.x) << "," << std::to_string(currentMove.from.y) << ",to:";
             std::cout << std::to_string(currentMove.to.x) << "," << std::to_string(currentMove.to.y) << std::endl;
-            curRenderer->movePiece(currentMove, *curBoard, 'q');
+            if (currentMove.from == currentMove.to){
+                receiveMoveStep = 1;
+            } else {
+                curRenderer->movePiece(currentMove, *curBoard, 'q');
+                receiveMoveStep += 1;
+            }
             return currentMove;
         }
         break;
