@@ -77,7 +77,7 @@ int main()
             }
 
         }
-        
+
         if (clickReturn.hasMoved) {
             first.activeMove(clickReturn.move);
         }
@@ -88,7 +88,11 @@ int main()
 
         if (board.gameState != GameState::ONGOING) {}
         if (board.activePlayer == 1){
-            first.calculate();
+            lastMove = first.calculate();
+            //std::cout << lastMove.from.x << lastMove.from.y << lastMove.to.x << lastMove.to.y << std::endl;
+            if (lastMove.from.x != -1){
+                player.startTurn(lastMove);
+            }
         }
         else if (board.activePlayer == 0){
             lastMove = player.calculate();
