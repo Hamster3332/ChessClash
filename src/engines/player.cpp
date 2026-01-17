@@ -1,20 +1,24 @@
 #include "player.h"
 #include <SFML/System/Angle.hpp>
 
-Player::Player(Board& board, RenderBoard& renderer, enPlayers color){
+Player::Player(Board& board, RenderBoard& renderer){
     curBoard = &board;
     curRenderer = &renderer;
+}
+
+void Player::startBot(enPlayers _color){
+
+}
+
+bool Player::isReady() {
+    return true;
 }
 
 void Player::startTurn(Move LastTurn){
     playerMove = {{-1, -1}, {-1, -1}};
 }
 
-void Player::activeMove(Move currentMove){
-    playerMove = currentMove;
-}
-
-Move Player::calculate(){
+Move Player::calculate() {
     if (promotionPiece == '0')
         return {{-1, -1}, {-1, -1}};
     if (playerMove.from.x == -1)
@@ -26,19 +30,27 @@ Move Player::calculate(){
                 playerMove.to.y * curRenderer->cellSize + curRenderer->boardPos.y });
             promotionPiece = '0';
         } else {
-            curRenderer->movePiece(playerMove, *curBoard, promotionPiece);
-            promotionPiece = '.';
             return playerMove;
         }
     }
     return {{-1, -1}, {-1, -1}};
 }
 
+Move Player::fallback(std::vector<Move> &moves){
+    return {{-1, -1}, {-1, -1}};
+}
+
+unsigned char Player::getPromotion() {
+    unsigned char result = promotionPiece;
+    promotionPiece = '.';
+    return result;
+}
+
+void Player::activeMove(Move currentMove){
+    playerMove = currentMove;
+}
+
 void Player::promotionResult(unsigned char piece) {
     curRenderer->showPromotionWindow = false;
     promotionPiece = piece;
-}
-
-bool Player::isReady() {
-    return true;
 }

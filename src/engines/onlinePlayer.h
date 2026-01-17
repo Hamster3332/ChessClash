@@ -1,14 +1,11 @@
 #ifndef ONLINE_PLAYER_H
 #define ONLINE_PLAYER_H
 
-#include "../core/board.h"
-#include "../ui/boardRender.h"
-#include "../ui/boardRender.h"
-#include "../core/playerInterface.cpp"
+#include <board.h>
+#include <renderBoard.h>
+#include "playerInterface.cpp"
 #include <string>
-#include <thread>
 #include <bits/stdc++.h>
-#include <cstring>
 
 class PlayerServer {
 public:
@@ -20,9 +17,12 @@ public:
     std::string sendMessage;
     bool serverSendDone = false;
 
-    bool serverRun = true;
+    bool serverRun = false;
+    std::string myColor;
     bool serverON = false;
+
     void serverThread();
+    void RunServer(enPlayers color);
     void send_message(std::string message);
     bool sendDone();
     void receive_message();
@@ -35,19 +35,26 @@ public:
 class OnlinePlayer : public PlayerInterface {
 public:
     PlayerServer serverObjekt;
-    OnlinePlayer(Board& board, RenderBoard& renderer, enPlayers color);
+    OnlinePlayer(Board& board, RenderBoard& renderer);
+    void startBot(enPlayers _color) override;
+    bool isReady() override;
+    void startTurn(Move LastTurn) override;
+    Move calculate() override;
+    unsigned char getPromotion() override;
+    Move fallback(std::vector<Move> &moves) override;
+
     ~OnlinePlayer();
-    void startTurn(Move LastTurn);
-    Move calculate();
-    bool isReady();
     std::thread* ServerThread;
 
     Move lastMove = {{0, 0}, {0, 0}};
     Move currentMove = {{0, 0}, {0, 0}};
     int sendMoveStep = 0;
     int receiveMoveStep = 0;
+    unsigned char promoteTo = 'q';
+    bool promoted = false;
 
     Board* curBoard;
+    bool running = false;
     RenderBoard* curRenderer;
     Move promotionDelayedMove = {{-1, -1}, {-1, -1}};
 };

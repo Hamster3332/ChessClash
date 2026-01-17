@@ -1,15 +1,11 @@
-#include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Rect.hpp>
-#include <SFML/Graphics/RectangleShape.hpp>
-#include <SFML/Graphics/Sprite.hpp>
-#include <SFML/System/Vector2.hpp>
-#include <SFML/Window/Keyboard.hpp>
-#include <iostream>
-#include <iterator>
+#include <algorithm>
 #include <vector>
-#include "boardRender.h"
-
+#include "renderBoard.h"
+#include "chessVector.h"
+#include "interpolations.cpp"
 
 RenderBoard::RenderBoard(sf::RenderWindow& w, const sf::Vector2f& pos)
     : boardPos(pos), window(w)
@@ -34,7 +30,7 @@ RenderBoard::RenderBoard(sf::RenderWindow& w, const sf::Vector2f& pos)
     }
 }
 
-void RenderBoard::draw(TextureManager &textures, Board &board) {
+void RenderBoard::draw(TextureManager &textures, Board &board, double animationProgress) {
     for (int c = 0; c < 64; c++) {
         window.draw(cells[c]);
     }
@@ -60,12 +56,13 @@ void RenderBoard::draw(TextureManager &textures, Board &board) {
 
         for (int x = 0; x < 8; x++) {
             pos.x = boardPos.x + cellSize * x;
+            pos.y = boardPos.y + cellSize * y;
 
 
-            if (x == lastOrigX && y == lastOrigY) {
+            if (x == lastOrig.x && y == lastOrig.y) {
                 sf::RectangleShape rect = sf::RectangleShape({cellSize, cellSize});
                 rect.setPosition(pos);
-                rect.setFillColor(selectedSquareC);
+                rect.setFillColor(sf::Color(selectedSquareC.r, selectedSquareC.g, selectedSquareC.b, selectedSquareC.a * easeInOutQuart(std::clamp((float)animationProgress * 3.0f, 0.0f, 1.0f)))); // <- Animieren bitte
                 window.draw(rect);
             }
 
@@ -76,6 +73,14 @@ void RenderBoard::draw(TextureManager &textures, Board &board) {
             if (selectedPiece.equal(x, y) && pieceSelected) {
                 selectedPieceChar = p;
             } else {
+                if (lastDestination.equal(x,y) && animationProgress <= 1.f) {
+                    float aP = easeInOutQuart(animationProgress);
+
+                    pos.x = lastOrig.x + aP * ( x - lastOrig.x );
+                    pos.y = lastOrig.y + aP * ( y - lastOrig.y );
+                    pos.x = boardPos.x + cellSize * pos.x;
+                    pos.y = boardPos.y + cellSize * pos.y;
+                }
                 sprite.setPosition(pos);
                 window.draw(sprite);
             }
@@ -133,16 +138,16 @@ onClickReturn RenderBoard::onClick(sf::Vector2i &clickPos, bool isClicking, Boar
         else {
             int promotionCharThing = (int)relClickPos.y;
             funcReturn.selectedPromotion = promotionPieces[promotionCharThing];
-            
+
             if (board.activePlayer) {
                 funcReturn.selectedPromotion = std::toupper(promotionPieces[promotionCharThing]);
             }
-            
+
             funcReturn.hasPromoted = true;
         }
         return funcReturn;
     }
-    
+
     relClickPos = {clickPos.x - boardPos.x, clickPos.y - boardPos.y};
     relClickPos.x /= (boardSize / 8.f);
     relClickPos.y /= (boardSize / 8.f);
@@ -178,9 +183,9 @@ onClickReturn RenderBoard::onClick(sf::Vector2i &clickPos, bool isClicking, Boar
     return funcReturn;
 }
 
-void RenderBoard::movePiece(Move move, Board &board, unsigned char promotedTo){
-    lastOrigX = move.from.x;
-    lastOrigY = move.from.y;
+void RenderBoard::movePiece(Move move, Board &board, unsigned char promotedTo) {
+    lastOrig = move.from;
+    lastDestination = move.to;
     board.movePiece(move.from, move.to, true, promotedTo);
 }
 

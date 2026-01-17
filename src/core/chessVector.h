@@ -1,5 +1,6 @@
 #ifndef CHESS_VECTOR_H
 #define CHESS_VECTOR_H
+#include <string>
 
 
 class ChessVector {
@@ -31,6 +32,7 @@ public:
 
     int manhattanDist() const;
     int matinnatianDist() const;
+    float absoluteDist() const;
 
     bool equal(ChessVector second ) const;
     bool equal(int _x, int _y) const;
@@ -46,9 +48,14 @@ struct Move {
     ChessVector to;
 };
 
+struct scoredMove {
+    Move move;
+    float score;
+};
 
 
 
-
+std::string moveToString(Move move);
+std::string moveToString(scoredMove move);
 
 #endif

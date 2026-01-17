@@ -2,23 +2,9 @@
 #define BOARD_H
 
 #include "chessVector.h"
-#include "logger.h"
 #include <array>
 #include <unordered_map>
 #include <vector>
-
-inline bool isBlack(unsigned char c);
-inline bool isBlack(unsigned char c);
-inline bool isWhite(unsigned char c);
-
-using BoardArray = std::array<std::array<unsigned char, 8>, 8>;
-
-int manhattanDistance(int pieceX, int pieceY, int goalX, int goalY);
-
-
-struct BoardHash {
-    std::size_t operator()(const BoardArray& b) const;
-};
 
 enum GameState {
     ONGOING = 2,
@@ -39,6 +25,21 @@ enum enPlayers {
     White = 1
 };
 
+enPlayers getPlayer(unsigned char c);
+enPlayers otherPlayer(enPlayers player);
+bool isPlayer(unsigned char c, enPlayers player);
+bool isBlack(unsigned char c);
+bool isWhite(unsigned char c);
+
+using BoardArray = std::array<std::array<unsigned char, 8>, 8>;
+
+int manhattanDistance(int pieceX, int pieceY, int goalX, int goalY);
+
+
+struct BoardHash {
+    std::size_t operator()(const BoardArray& b) const;
+};
+
 class Board {
 public:
     BoardArray boardState {{
@@ -51,8 +52,8 @@ public:
         {'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'},
         {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'}
     }};
-    
-    bool activePlayer = 1; // 1 is white and 0 is black
+
+    enPlayers activePlayer = White; // 1 is white and 0 is black
 
     GameState gameState = ONGOING;
     // in order:
@@ -64,7 +65,7 @@ public:
 
     // if it is 50, its a draw
     int movesWithoutCapture = 0;
-    
+
     std::unordered_map<BoardArray, int, BoardHash> repetitionCount;
 
     ChessVector enPassant = {0, 0};
@@ -79,16 +80,16 @@ public:
     bool isPromotion(Move move);
 
     GameState movePiece(ChessVector piece, ChessVector goal, bool changeActivePlayer, unsigned char promotedTo);
-    bool isAttackedByOpponent(ChessVector square, bool checkedForActivePlayer);
+    bool isAttackedByOpponent(ChessVector square, enPlayers checkedForActivePlayer);
     bool hasTurn(ChessVector piece);
     unsigned char get(ChessVector piece) const;
     inline void set(ChessVector piece, unsigned char type);
-    inline unsigned char betweenMove(Move move);
-    inline unsigned char betweenMove(Move move, unsigned char replacedBy);
+    unsigned char betweenMove(Move move);
+    unsigned char betweenMove(Move move, unsigned char replacedBy);
 
 private:
     inline void killPiece(ChessVector piece);
-    bool movePrecheck(Move move);
+    bool movePrecheck(const Move& move);
 };
 
 #endif

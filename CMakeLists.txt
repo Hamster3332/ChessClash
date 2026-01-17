@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
-project(ChessClash LANGUAGES CXX)
+
+project(ChessClash)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
@@ -12,51 +13,115 @@ FetchContent_Declare(SFML
     SYSTEM)
 FetchContent_MakeAvailable(SFML)
 
+add_executable(ChessClash)
 
-# ----core----
-add_library(core
-    src/core/board.cpp
-    src/core/chessVector.cpp
-    src/core/logger.cpp
+target_sources(ChessClash
+    PRIVATE
+        src/main.cpp
 )
 
-target_include_directories(core PUBLIC src)
-
-# ----ui----
-add_library(ui
-    src/ui/boardRender.cpp
-    src/ui/textureManager.cpp
-)
-
-target_link_libraries(ui PUBLIC core sfml-graphics sfml-window sfml-system)
-
-# ----engines----
-add_library(player
-    src/engines/player.cpp
-    src/engines/onlinePlayer.cpp
-    src/engines/random.cpp
-)
-
-target_link_libraries(player PUBLIC core)
-
-target_include_directories(core PUBLIC src)
-target_include_directories(ui PUBLIC src)
-target_include_directories(player PUBLIC src)
-
-
-add_executable(ChessClash
-    src/main.cpp)
-
-add_executable(TestFile
-    src/tester.cpp)
-
-target_compile_features(ChessClash PRIVATE cxx_std_17)
 target_link_libraries(ChessClash
     PRIVATE
-        ui
-        core
-        player
         sfml-graphics
         sfml-window
         sfml-system
+        sfml-audio
+        core
+        ui
+        engines
+)
+
+add_library(core)
+
+target_sources(core
+    PRIVATE
+        src/core/board.cpp
+        src/core/chessVector.cpp
+        src/core/logger.cpp
+    PUBLIC
+        FILE_SET HEADERS
+        BASE_DIRS
+            src/core
+        FILES
+            src/core/board.h
+            src/core/chessVector.h
+            src/core/logger.h
+)
+
+add_library(ui)
+
+target_sources(ui
+    PRIVATE
+        src/ui/renderBoard.cpp
+        src/ui/textureManager.cpp
+        src/ui/soundManager.cpp
+    PUBLIC
+        FILE_SET HEADERS
+        BASE_DIRS
+            src/ui
+        FILES
+            src/ui/renderBoard.h
+            src/ui/textureManager.h
+            src/ui/soundManager.h
+)
+
+target_link_libraries(ui
+    PRIVATE
+        sfml-graphics
+        sfml-window
+        sfml-system
+        sfml-audio
+        core
+)
+
+add_library(engines)
+
+target_sources(engines
+    PRIVATE
+        src/engines/onlinePlayer.cpp
+        src/engines/player.cpp
+        src/engines/general.cpp
+        src/engines/subGeneral.cpp
+        src/engines/recursive.cpp
+    PUBLIC
+        FILE_SET HEADERS
+        BASE_DIRS
+            src/engines
+        FILES
+            src/engines/player.h
+            src/engines/onlinePlayer.h
+            src/engines/general.h
+            src/engines/subGeneral.h
+            src/engines/recursive.h
+)
+
+target_link_libraries(engines
+    PRIVATE
+        core
+        ui
+)
+
+
+#target_compile_definitions(core
+#    PRIVATE
+#        DEBUG
+#)
+
+
+# ----tester.cpp----
+add_executable(tester)
+target_sources(tester
+    PRIVATE
+        src/tester.cpp
+)
+
+target_link_libraries(tester
+    PRIVATE
+        core
+        ui
+        engines
+        sfml-graphics
+        sfml-window
+        sfml-system
+        sfml-audio
 )

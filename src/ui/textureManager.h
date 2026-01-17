@@ -2,6 +2,7 @@
 #define TEXTURE_MANAGER_H
 
 #include <SFML/Graphics/Texture.hpp>
+#include <SFML/Audio.hpp>
 #include <map>
 
 class TextureManager {
@@ -10,6 +11,5 @@ public:
     void load();
     sf::Texture& get(char piece);
 };
-
 
 #endif

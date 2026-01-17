@@ -1,14 +1,11 @@
 #ifndef ACTIVE_PLAYER_INTERFACE_H
 #define ACTIVE_PLAYER_INTERFACE_H
 
-#include "../core/chessVector.h"
+#include "chessVector.h"
 
-class ActivePlayerInterface {
+class activePlayerInterface {
 public:
     virtual void activeMove(Move currentMove) {}
     virtual void promotionResult(unsigned char piece) {}
-    virtual void startTurn(Move LastTurn){}
-    virtual Move calculate(){return {{0,0}, {0,0}};}
-    virtual bool isReady(){return false;}
 };
 #endif

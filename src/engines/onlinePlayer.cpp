@@ -1,10 +1,6 @@
 #include "onlinePlayer.h"
-#include <asm-generic/errno.h>
-#include <chrono>
+#include "board.h"
 #include <arpa/inet.h>
-#include <iostream>
-#include <ostream>
-#include <string>
 
 // Non-static member function
 void PlayerServer::serverThread() {
@@ -12,7 +8,9 @@ void PlayerServer::serverThread() {
     std::string SendStr;
     char buffer[1024] = {0};
 
-    bool clientReady;
+    while (!serverRun) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
     int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     sockaddr_in serverAddress;
@@ -29,17 +27,17 @@ void PlayerServer::serverThread() {
     Received = buffer;
     SendStr = "OK";
     send(clientSocket, SendStr.c_str(), strlen(SendStr.c_str()), 0);
-    SendStr = "White2";
+    SendStr = myColor;
     send(clientSocket, SendStr.c_str(), strlen(SendStr.c_str()), 0);
     std::cout << "Server Running" << std::endl;
     serverON = true;
     while (serverRun) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (serverSend && !serverSendDone){
-            std::cout << "send started" << std::endl;
+            //std::cout << "send started" << std::endl;
             send(clientSocket, sendMessage.c_str(), strlen(sendMessage.c_str()), 0);
             serverSendDone = true;
-            std::cout << "send Done" << std::endl;
+            //std::cout << "send Done" << std::endl;
         }
         if (!serverSend && serverSendDone)
             serverSendDone = false;
@@ -48,12 +46,24 @@ void PlayerServer::serverThread() {
             recv(clientSocket, buffer, sizeof(buffer), 0);
             receivedMessage = buffer;
             serverReceiveDone = true;
-            std::cout << "rekifed" << std::endl;
+            //std::cout << "rekifed" << std::endl;
         }
         if (!serverReceive && serverReceiveDone)
             serverReceiveDone = false;
     }
     std::cout << "Server Stopped" << std::endl;
+}
+
+void PlayerServer::RunServer(enPlayers color){
+    switch (color) {
+        case enPlayers::White:
+        myColor = "White";
+        break;
+        case enPlayers::Black:
+        myColor = "Black";
+        break;
+    }
+    serverRun = true;
 }
 
 bool PlayerServer::Ready(){
@@ -94,21 +104,31 @@ std::string PlayerServer::received_message(){
     return receivedMessage;
 }
 
-void PlayerServer::Stop(){
+void PlayerServer::Stop() {
     serverRun = false;
 }
 
 
 
-OnlinePlayer::OnlinePlayer(Board& board, RenderBoard& renderer, enPlayers color) {
+OnlinePlayer::OnlinePlayer(Board& board, RenderBoard& renderer) {
     curBoard = &board;
     curRenderer = &renderer;
+}
+
+
+void OnlinePlayer::startBot(enPlayers _color){
     ServerThread = new std::thread(&PlayerServer::serverThread, &serverObjekt);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    serverObjekt.RunServer(_color);
+    running = true;
+}
+
+bool OnlinePlayer::isReady() {
+    return serverObjekt.serverON;
 }
 
 void OnlinePlayer::startTurn(Move LastTurn){
-    sendMoveStep = 1;
+    promoted = curBoard->isPromotion(LastTurn);
+    if(LastTurn.from.x != -1) sendMoveStep = 1;
     receiveMoveStep = 1;
     lastMove = LastTurn;
 }
@@ -155,6 +175,38 @@ Move OnlinePlayer::calculate() {
             }break;
             case 8:
             if (serverObjekt.receiveDone()) {
+                if (promoted){
+                    sendMoveStep += 1;
+                }else{
+                    sendMoveStep = 0;
+                }
+            }break;
+            case 9:
+            if (serverObjekt.Ready()) {
+                std::string opponentPromotion = "D";
+                switch(std::tolower(curBoard->get(lastMove.to))) {
+                    case 'q':
+                    opponentPromotion = "D";
+                    break;
+                    case 'n':
+                    opponentPromotion = "P";
+                    break;
+                    case 'r':
+                    opponentPromotion = "T";
+                    break;
+                    case 'b':
+                    opponentPromotion = "L";
+                    break;
+
+                    default:
+                    std::cout << "Opponent Promotion Wrong lmao\n" << curBoard->get(lastMove.to) << std::endl;
+                    break;
+                }
+                serverObjekt.send_message(opponentPromotion);
+                sendMoveStep += 1;
+            }break;
+            case 10:
+            if (serverObjekt.sendDone()) {
                 sendMoveStep = 0;
             }break;
         }
@@ -214,10 +266,43 @@ Move OnlinePlayer::calculate() {
             std::cout << std::to_string(currentMove.to.x) << "," << std::to_string(currentMove.to.y) << std::endl;
             if (currentMove.from == currentMove.to){
                 receiveMoveStep = 1;
-            } else {
-                curRenderer->movePiece(currentMove, *curBoard, 'q');
+            } else if (curBoard->isPromotion(currentMove)){
+                receiveMoveStep = 18;
+                std::cout << "promoting";
+            }else{
                 receiveMoveStep += 1;
+                return currentMove;
             }
+        }
+        break;
+
+        case 18:
+        if (serverObjekt.Ready()) {
+            serverObjekt.receive_message();
+            receiveMoveStep += 1;}
+        break;
+        case 19:
+        if (serverObjekt.receiveDone()) {
+            std::cout << "promotedTo" << serverObjekt.received_message() << std::endl;
+            switch(serverObjekt.received_message().c_str()[0]) {
+                case 'D':
+                promoteTo = 'q';
+                break;
+                case 'P':
+                promoteTo = 'n';
+                break;
+                case 'T':
+                promoteTo = 'r';
+                break;
+                case 'L':
+                promoteTo = 'b';
+                break;
+
+                default:
+                    std::cout << "Promotion Wrong";
+                    break;
+            }
+            receiveMoveStep += 1;
             return currentMove;
         }
         break;
@@ -225,11 +310,17 @@ Move OnlinePlayer::calculate() {
     return {{-1, -1}, {-1, -1}};
 }
 
-bool OnlinePlayer::isReady() {
-    return serverObjekt.serverON;
+unsigned char OnlinePlayer::getPromotion(){
+    return promoteTo;
+}
+
+Move OnlinePlayer::fallback(std::vector<Move> &moves){
+    return {{-1, -1}, {-1, -1}};
 }
 
 OnlinePlayer::~OnlinePlayer() {
-    ServerThread->join();
-    delete ServerThread;
+    if (running){
+        ServerThread->join();
+        delete ServerThread;
+    }
 }

@@ -1,5 +1,6 @@
 #include "chessVector.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 
 ChessVector::ChessVector(int _x, int _y) : x(_x), y(_y) {
@@ -38,7 +39,9 @@ int ChessVector::matinnatianDist() const {
     return std::max(std::abs(x), std::abs(y));
 }
 
-
+float ChessVector::absoluteDist() const {
+    return std::sqrt(x * x + y * y);
+}
 
 
 //Operators
@@ -100,4 +103,13 @@ bool ChessVector::notEqual(ChessVector second ) const {
 
 bool ChessVector::notEqual(int _x, int _y) const {
     return x != _x || y != _y;
+}
+
+
+std::string moveToString(Move move){
+    return "Move from: " + std::to_string(move.from.x) + "," + std::to_string(move.from.y) + " to: "
+        + std::to_string(move.to.x) + "," + std::to_string(move.to.y) + " ";
+}
+std::string moveToString(scoredMove move){
+    return moveToString(move.move) + "With score: " + std::to_string(move.score);
 }

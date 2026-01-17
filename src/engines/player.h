@@ -1,25 +1,29 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "../core/board.h"
-#include "../ui/boardRender.h"
-#include "../core/playerInterface.cpp"
-#include "../core/activePlayerInterface.cpp"
-#include <SFML/Window/Keyboard.hpp>
+#include <board.h>
+#include <renderBoard.h>
+#include "playerInterface.cpp"
+#include "activePlayerInterface.cpp"
 
-class Player {
+
+class Player : public activePlayerInterface, public PlayerInterface {
 public:
-    Player(Board& board, RenderBoard& renderer, enPlayers color);
-    void activeMove(Move currentMove);
-    void promotionResult(unsigned char piece);
-    void startTurn(Move LastTurn);
-    Move calculate();
-    bool isReady();
+    Player(Board& board, RenderBoard& renderer);
+    void startBot(enPlayers _color) override;
+    bool isReady() override;
+    void startTurn(Move LastTurn) override;
+    Move calculate() override;
+    unsigned char getPromotion() override;
+    Move fallback(std::vector<Move> &moves) override;
+    
+    void activeMove(Move currentMove) override;
+    void promotionResult(unsigned char piece) override;
 
     Board* curBoard;
     RenderBoard* curRenderer;
     Move playerMove = {{-1, -1}, {-1, -1}};
-    unsigned char promotionPiece = '0';
+    unsigned char promotionPiece = '.';
 };
 
 #endif

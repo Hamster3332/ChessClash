@@ -43,5 +43,9 @@ inline unsigned char castlingBoard[8][8] = {
 inline unsigned char allPieces[13] = {'.', 'k','K','p','P','q','Q','b','B','n','N','r','R'};
 inline constexpr int pieceTypeNum = 13;
 
+constexpr int knightDirections[8][2] = {{2, 1}, {1, 2}, {-2, 1}, {-1, 2}, {2, -1}, {1, -2}, {-2, -1}, {-1, -2}};
+constexpr int rookDirections[4][2] = {{0,1},{0,-1},{1,0},{-1,0}};
+constexpr int BishopDirections[4][2] = {{1,1},{-1,-1},{1,-1},{-1,1}};
+constexpr int PawnDirections[2][2] = {{1,1},{-1,1}};
 
 #endif
