@@ -85,7 +85,7 @@ int main()
     OnlinePlayer oPlayer(board, renderBoard);
 
     PlayerInterface& playerWhite = player;
-    PlayerInterface& playerBlack = bot2;
+    PlayerInterface& playerBlack = bot1;
 
     playerWhite.startBot(enPlayers::White);
     playerBlack.startBot(enPlayers::Black);
@@ -165,7 +165,7 @@ int main()
             }
             avT /= calcTimes.size();
             std::cout << "White takes on average " << avT << " seconds to calculate.\n";
-            
+
 
             //std::cout << lastMove.from.x << lastMove.from.y << lastMove.to.x << lastMove.to.y << std::endl;
             if (lastMove.from.x != -1) {
