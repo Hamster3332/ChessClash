@@ -19,14 +19,16 @@ Logic created from Scratch in C++.
 - online playing [^1]
 
 #### List of engines
-- Bandit *pieces move towards the opponents king*
-- UnBandit *pieces move away from the opponents king*
-- Cuddle *pieces move towards your own king*
-- Kamikaze *blunders all pieces*
-- UnKamikaze *doesnt blunder all pieces*
-- Random *plays random moves*
-- Capture *if it can capture, it captures*
-- Bad School Kid *a very simple try to create a decent bot with simple logic*
+| Name | description |
+| ---- | ----------- |
+| Bandit | *pieces move towards the opponents king* |
+| UnBandit | *pieces move away from the opponents king* |
+| Cuddle | *pieces move towards your own king* |
+| Kamikaze | *blunders all pieces* |
+| UnKamikaze | *doesnt blunder all pieces* |
+| Random | *plays random moves* |
+| Capture | *if it can capture, it captures* |
+| Bad School Kid | *a very simple try to create a decent bot with simple logic* |
 
 
 #### List of evaluators
