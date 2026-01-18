@@ -1,6 +1,7 @@
 # ChessClash
 
 A chess GUI with multiple fun engines to see which tactic is the best!
+Logic created from Scratch in C++.
 
 ### Requirements
 
@@ -15,7 +16,7 @@ A chess GUI with multiple fun engines to see which tactic is the best!
 - A board gets rendered
 - drag and drop pieces
 - different bots / engines you can play against or play against each other [^1]
-- online playing (WIP) [^1]
+- online playing [^1]
 
 #### List of engines
 - Bandit *pieces move towards the opponents king*
@@ -34,5 +35,5 @@ A chess GUI with multiple fun engines to see which tactic is the best!
     check
 
 
-[^1] currently you would need to change the code before compiling to choose
+[^1]: currently you would need to change the code before compiling to choose
 
