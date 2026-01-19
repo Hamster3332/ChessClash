@@ -3,6 +3,8 @@
 #include "chessVector.h"
 #include "logger.h"
 #include "subGeneral.h"
+#include <algorithm>
+#include <cmath>
 #include <string>
 
 
@@ -56,21 +58,20 @@ scoredMove E_Recursive::getBestMove() {
     return BestMove;
 }
 
-float E_Recursive::evaluateRecursive(Move mv, enPlayers Player, int levels) {
-    logEnter("evaluateRecursive " + moveToString(mv) +"|"+ std::to_string(Player) +"|"+ std::to_string(levels), 1);
+float E_Recursive::evaluateRecursive(Move mv, enPlayers Player, float myBestOption, float bestOpponentOption, int levels) {
     if (levels == 0){
         float score = 0.0f;
         for (prioEvaluators engine : priorities) {
             score += getEvaluatorResult(engine.engine) * engine.priority;
         }
-        logExit("Skibidi Matinnate forgort this :skull:", 1);
+        logInfo("static Evaluation "+ std::to_string(score), 1);
         return score;
     }
+    logEnter("evaluateRecursive " + moveToString(mv) +"|"+ std::to_string(Player) +"|"+ std::to_string(levels)+"|"+ std::to_string(myBestOption)+"|"+ std::to_string(bestOpponentOption), 1);
     float reverser = -1.f;
     if (Player == color)//get Best
         reverser = 1.f;
-    float maxima = 0.0f;
-    bool found = false;
+    float maxima = -INFINITY;
     unsigned char betweenMoved;
     for (int y1 = 0; y1 < 8; ++y1) {
         for (int x1 = 0; x1 < 8; ++x1) {
@@ -78,23 +79,27 @@ float E_Recursive::evaluateRecursive(Move mv, enPlayers Player, int levels) {
             if (p1 != '.' && isWhite(p1) == Player) {
                 for (Move mv : curBoard->getLegalMoves({x1, y1})) {
                     betweenMoved = curBoard->betweenMove(mv);
-                    float score = evaluateRecursive(mv, otherPlayer(Player), levels - 1);
-                    if (score * reverser > maxima * reverser || !found){
-                        maxima = score;
-                        found = true;
-                    }
+                    float score = evaluateRecursive(mv, otherPlayer(Player), bestOpponentOption, myBestOption * reverser, levels - 1);
+                    maxima = std::max( maxima, score * reverser);
+                    myBestOption = std::max( myBestOption, score * reverser);
                     curBoard->betweenMove({mv.to, mv.from}, betweenMoved);
+                    if (bestOpponentOption * reverser <= myBestOption){
+                        logInfo("pruned after "+ std::to_string(myBestOption)+" >= "+ std::to_string(bestOpponentOption * reverser), 1);
+                        y1 = 100;
+                        x1 = 100;
+                        break;
+                    }
                 }
             }
         }
     }
-    logExit(std::to_string(maxima), 1);
-    return maxima;
+    logExit(std::to_string(maxima * reverser), 1);
+    return maxima * reverser;
 }
 
 
 Move E_Recursive::calculate() {
-    scoredMove BestMove = {{{-1, -1}, {-1, -1}}, -10000000.0f};
+    scoredMove BestMove = {{{-1, -1}, {-1, -1}}, -INFINITY};
     float score;
     bool found = false;
     unsigned char p1, bp1;
@@ -105,7 +110,7 @@ Move E_Recursive::calculate() {
             if (p1 != '.' && isWhite(p1) == color) {
                 for (Move mv : curBoard->getLegalMoves({x1, y1})) {
                     bp1 = curBoard->betweenMove(mv);
-                    score = evaluateRecursive(mv, otherPlayer(color), 3);
+                    score = evaluateRecursive(mv, otherPlayer(color), -INFINITY, BestMove.score, 6); // 3
                     curBoard->betweenMove({mv.to, mv.from}, bp1);
                     for (prioEngine engine : prioritiesEngine) {
                         score += getEngineResult(mv, engine.engine) * engine.priority;

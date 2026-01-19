@@ -24,7 +24,7 @@ void logEnter(std::string func, int id) {
     if (LOGGER_currentID == id){
         if (first) LOGGER_file << "\n{\"" << func << "\": [";
         else LOGGER_file << ",\n{\"" << func << "\": [";
-        first = false;
+        first = true;
     }
 }
 
@@ -32,7 +32,7 @@ void logEnter(std::string func) {
     if (LOGGER_currentID == 0){
         if (first) LOGGER_file << "\n{\"" << func << "\": [";
         else LOGGER_file << ",\n{\"" << func << "\": [";
-        first = false;
+        first = true;
     }
 }
 

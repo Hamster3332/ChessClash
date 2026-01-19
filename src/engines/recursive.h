@@ -32,7 +32,7 @@ public:
     std::vector<scoredMove> test = {};
 
     scoredMove getBestMove();
-    float evaluateRecursive(Move mv, enPlayers Player, int levels);
+    float evaluateRecursive(Move mv, enPlayers Player, float alpha, float beta, int levels);
     float getEvaluatorResult(enEvaluators engine);
     float getEngineResult(Move mv, enEngines engine);
 };

@@ -67,8 +67,8 @@ int main()
      */
     //bot1.generalSet(enEngines::unKamikaze, 40.0f);
     bot1.generalSet(enEvaluators::material, 100.0f);
-    bot1.generalSet(enEvaluators::push, 0.01f);
-    bot1.generalSet(enEvaluators::check, 1.f);
+    //bot1.generalSet(enEvaluators::push, 0.01f);
+    //bot1.generalSet(enEvaluators::check, 1.f);
     //bot1.generalSet(enEngines::capture, 40.0f);
     //bot1.generalSet(enEngines::enPassant, 1000.0f);
     //bot1.generalSet(enEngines::promote, 1000.0f);
@@ -84,7 +84,7 @@ int main()
     Player player(board, renderBoard);
     OnlinePlayer oPlayer(board, renderBoard);
 
-    PlayerInterface& playerWhite = player;
+    PlayerInterface& playerWhite = bot2;
     PlayerInterface& playerBlack = bot1;
 
     playerWhite.startBot(enPlayers::White);
@@ -164,7 +164,7 @@ int main()
                 avT += t.asSeconds();
             }
             avT /= calcTimes.size();
-            std::cout << "White takes on average " << avT << " seconds to calculate.\n";
+            //std::cout << "White takes on average " << avT << " seconds to calculate.\n";
 
 
             //std::cout << lastMove.from.x << lastMove.from.y << lastMove.to.x << lastMove.to.y << std::endl;
@@ -182,7 +182,7 @@ int main()
                     std::cout << std::to_string(lastMove.to.x) << "," << std::to_string(lastMove.to.y) << std::endl;
                 }
             } else {
-                std::cout << "DeclinedMoveWhite" << moveToString(lastMove) << std::endl;
+                //std::cout << "DeclinedMoveWhite" << moveToString(lastMove) << std::endl;
             }
         }
         else if (board.activePlayer == Black) {

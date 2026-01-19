@@ -5,7 +5,7 @@
 #include <cstdlib>
 
 float getPieceValue( unsigned char piece){
-    switch ( std::tolower(piece)) {
+    switch ( tolower(piece)) {
         case 'q':
         return 1.0f;
         case 'p':
@@ -22,8 +22,8 @@ float getPieceValue( unsigned char piece){
     return 0.0f;
 }
 
-float betterGetPieceValue(unsigned char piece){
-    switch (std::tolower(piece)) {
+inline float betterGetPieceValue(unsigned char piece){
+    switch (tolower(piece)) {
         case 'q':
         return 0.9f;
         case 'p':
@@ -42,6 +42,8 @@ float betterGetPieceValue(unsigned char piece){
 
 float sub_E_BadSchoolKid(Move mv, Board* board, enPlayers color) {
     float result = 0.0f;
+    
+    int numPossibleMoves = board->getLegalMoves(mv.from).size();
 
     float pieceVal = betterGetPieceValue(board->get(mv.from));
     float goalVal = betterGetPieceValue(board->get(mv.to));
@@ -50,9 +52,11 @@ float sub_E_BadSchoolKid(Move mv, Board* board, enPlayers color) {
     bool goalIsAttacked = board->isAttackedByOpponent(mv.to, color);
     bool isCapture = board->get(mv.to) != '.';
 
-    unsigned char pieceType = std::tolower(board->get(mv.from));
+    unsigned char pType = tolower(board->get(mv.from));
 
     unsigned char p1 = board->betweenMove(mv);
+    int numDevelopMoves = board->getLegalMoves(mv.to).size();
+    result += (float)(numDevelopMoves - numPossibleMoves) * 0.001f;
     bool canMove = board->existsLegalMove(otherPlayer(color));
     bool isCheck = board->isAttackedByOpponent(board->KPos[otherPlayer(color)], otherPlayer(color));
     unsigned char peike = '.';
@@ -88,7 +92,12 @@ float sub_E_BadSchoolKid(Move mv, Board* board, enPlayers color) {
     }
 
     board->betweenMove({mv.to, mv.from}, p1);
-
+    
+    if (pType == 'k') {
+        result -= 0.01;
+    } else if (pType == 'p') {
+        result += 0.01;
+    }
 
 
     if (goalIsAttacked) {
@@ -99,7 +108,7 @@ float sub_E_BadSchoolKid(Move mv, Board* board, enPlayers color) {
     }
 
     result += goalVal;
-    result += (float)rand() / (float)RAND_MAX * 0.00001;
+    result += (float)rand() / (float)RAND_MAX * 0.000001;
 
 
     return result;
@@ -160,7 +169,7 @@ float sub_Promote(Move mv, Board* board, enPlayers color) {
 }
 
 float sub_EnPassant(Move mv, Board* board, enPlayers color) {
-    if (std::tolower(board->get(mv.from)) == 'p' && mv.from.x != mv.to.x &&
+    if (tolower(board->get(mv.from)) == 'p' && mv.from.x != mv.to.x &&
         board->get(mv.to) == '.') {
         return 1.0f;
     }
@@ -169,9 +178,12 @@ float sub_EnPassant(Move mv, Board* board, enPlayers color) {
 
 float sub_Ev_Push(Board* board, enPlayers color) {
     float result = 0.0f;
-    for (int y = 0; y < 8; ++y) {
-        for (int x = 0; x < 8; ++x) {
-            if (board->get({x, y}) != '.' && isWhite(board->get({x, y})) == color) {
+    unsigned char p = '.';
+    int x,y;
+    for (y = 0; y < 8; ++y) {
+        for (x = 0; x < 8; ++x) {
+            p = board->get({x, y});
+            if (p != '.' && isWhite(p) == color) {
                 if (color == enPlayers::White) result += 7 - y;
                 else result += y;
             }
@@ -192,14 +204,15 @@ float sub_Ev_Check(Board* board, enPlayers color) {
 float sub_Ev_Material(Board* board, enPlayers color) {
     float result = 0.0f;
     unsigned char p = '.';
-    for (int y = 0; y < 8; ++y) {
-        for (int x = 0; x < 8; ++x) {
+    int x,y;
+    for (y = 0; y < 8; ++y) {
+        for (x = 0; x < 8; ++x) {
             p = board->get({x, y});
-            if ((y == 0 || y == 7) && isWhite(p) == color && std::tolower(p) == 'p') {
+            if ((y == 0 || y == 7) && isWhite(p) == color && tolower(p) == 'p') {
                 result += 0.9;
-            } else if (p != '.' && isWhite(p) == color && std::tolower(p) != 'k') {
+            } else if (p != '.' && isWhite(p) == color) {
                 result += betterGetPieceValue(p);
-            } else if (p != '.' && isWhite(p) != color && std::tolower(p) != 'k'){
+            } else if (p != '.' && isWhite(p) != color){
                 result -= betterGetPieceValue(p);
             }
         }

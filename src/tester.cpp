@@ -66,17 +66,19 @@ void layoutTest(unsigned char layout[8][8]){
 int main()
 {
     logInitiate();
-    logID(2);
+    logID(1);
     window.setFramerateLimit(144);
 
+    board.setBoardState(test);
     myE.startBot(enPlayers::White);
     myE.generalSet(enEvaluators::push, 10.f);
     myE.generalSet(enEvaluators::check, 10.f);
     myE.generalSet(enEvaluators::material, 10.f);
-    layoutTest(test);
-    layoutTest(standardBoard);
-    layoutTest(checkmateBoard);
-    layoutTest(castlingBoard);
+    myE.calculate();
+    //layoutTest(test);
+    //layoutTest(standardBoard);
+    //layoutTest(checkmateBoard);
+    //layoutTest(castlingBoard);
 
     logClose();
 }
