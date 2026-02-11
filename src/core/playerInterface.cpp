@@ -7,6 +7,8 @@
 
 class PlayerInterface {
 public:
+    virtual ~PlayerInterface() = default;
+
     virtual void startBot(enPlayers _color){}
     virtual bool isReady() {return false;}
     virtual void startTurn(Move LastTurn){}

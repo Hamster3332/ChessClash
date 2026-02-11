@@ -26,8 +26,8 @@ Move Player::calculate() {
     if (curBoard->isLegalMove(playerMove.from, playerMove.to)) {
         if (curBoard->isPromotion(playerMove) && promotionPiece == '.'){
             curRenderer->showPromotionWindow = true;
-            curRenderer->setPromotionWindowPos({playerMove.to.x * curRenderer->cellSize + curRenderer->boardPos.x,
-                playerMove.to.y * curRenderer->cellSize + curRenderer->boardPos.y });
+            curRenderer->setPromotionWindowPos({playerMove.to.x * curRenderer->cellSize.x + curRenderer->boardPos.x,
+                playerMove.to.y * curRenderer->cellSize.y + curRenderer->boardPos.y });
             promotionPiece = '0';
         } else {
             return playerMove;

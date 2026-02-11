@@ -4,17 +4,18 @@
 #include <iostream>
 
 void SoundManager::load() {
-    if (!soundBuffers[enSounds::capture].loadFromFile("sounds/capture.mp3"))
+    const std::string sound_path = "assets/sounds/";
+    if (!soundBuffers[enSounds::capture].loadFromFile(sound_path + "capture.mp3"))
         std::cerr << "Failed to load capture.mp4.\n";
-    if (!soundBuffers[enSounds::move].loadFromFile("sounds/move.mp3"))
+    if (!soundBuffers[enSounds::move].loadFromFile(sound_path + "move.mp3"))
         std::cerr << "Failed to load move.mp3.\n";
-    if (!soundBuffers[enSounds::castling].loadFromFile("sounds/castling.mp3"))
+    if (!soundBuffers[enSounds::castling].loadFromFile(sound_path + "castling.mp3"))
         std::cerr << "Failed to load castling.mp3.\n";
-    if (!soundBuffers[enSounds::check].loadFromFile("sounds/check.mp3"))
+    if (!soundBuffers[enSounds::check].loadFromFile(sound_path + "check.mp3"))
         std::cerr << "Failed to load check.mp3.\n";
-    if (!soundBuffers[enSounds::checkmate].loadFromFile("sounds/checkmate.mp3"))
+    if (!soundBuffers[enSounds::checkmate].loadFromFile(sound_path + "checkmate.mp3"))
         std::cerr << "Failed to load checkmate.mp3.\n";
-    if (!soundBuffers[enSounds::draw].loadFromFile("sounds/draw.mp3"))
+    if (!soundBuffers[enSounds::draw].loadFromFile(sound_path + "draw.mp3"))
         std::cerr << "Failed to load draw.mp3.\n";
 }
 
@@ -23,9 +24,7 @@ sf::SoundBuffer& SoundManager::get(enSounds sound) {
     return soundBuffers.at(sound);
 }
 
-SoundPlayer::SoundPlayer(SoundManager& sounds) : sound(sounds.get(enSounds::castling)){
-
-}
+SoundPlayer::SoundPlayer(SoundManager& sounds) : sound(sounds.soundBuffers[enSounds::castling]) {}
 
 
 void SoundPlayer::getToMove(Move lastMove, Board& board, SoundManager& sounds) {

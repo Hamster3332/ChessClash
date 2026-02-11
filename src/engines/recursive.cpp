@@ -58,7 +58,7 @@ scoredMove E_Recursive::getBestMove() {
     return BestMove;
 }
 
-float E_Recursive::evaluateRecursive(Move mv, enPlayers Player, float myBestOption, float bestOpponentOption, int levels) {
+float E_Recursive::evaluateRecursive(Move mv, enPlayers Player, float alpha, float beta, int levels) {
     if (levels == 0){
         float score = 0.0f;
         for (prioEvaluators engine : priorities) {
@@ -67,34 +67,62 @@ float E_Recursive::evaluateRecursive(Move mv, enPlayers Player, float myBestOpti
         logInfo("static Evaluation "+ std::to_string(score), 1);
         return score;
     }
-    logEnter("evaluateRecursive " + moveToString(mv) +"|"+ std::to_string(Player) +"|"+ std::to_string(levels)+"|"+ std::to_string(myBestOption)+"|"+ std::to_string(bestOpponentOption), 1);
-    float reverser = -1.f;
-    if (Player == color)//get Best
-        reverser = 1.f;
-    float maxima = -INFINITY;
-    unsigned char betweenMoved;
-    for (int y1 = 0; y1 < 8; ++y1) {
-        for (int x1 = 0; x1 < 8; ++x1) {
-            unsigned char p1 = curBoard->get({x1, y1});
-            if (p1 != '.' && isWhite(p1) == Player) {
-                for (Move mv : curBoard->getLegalMoves({x1, y1})) {
-                    betweenMoved = curBoard->betweenMove(mv);
-                    float score = evaluateRecursive(mv, otherPlayer(Player), bestOpponentOption, myBestOption * reverser, levels - 1);
-                    maxima = std::max( maxima, score * reverser);
-                    myBestOption = std::max( myBestOption, score * reverser);
-                    curBoard->betweenMove({mv.to, mv.from}, betweenMoved);
-                    if (bestOpponentOption * reverser <= myBestOption){
-                        logInfo("pruned after "+ std::to_string(myBestOption)+" >= "+ std::to_string(bestOpponentOption * reverser), 1);
-                        y1 = 100;
-                        x1 = 100;
-                        break;
+    logEnter("evaluateRecursive " + moveToString(mv) +"|"+ std::to_string(Player) +"|"+ std::to_string(levels)+"|"+ std::to_string(alpha)+"|"+ std::to_string(beta), 1);
+
+    unsigned char movedPiece;
+    float maxima, minima;
+    unsigned char piece;
+    float score;
+    int x1, y1;
+    if (Player == color){//get Best
+        maxima = -INFINITY;
+        for (y1 = 0; y1 < 8; ++y1) {
+            for (x1 = 0; x1 < 8; ++x1) {
+                piece = curBoard->get({x1, y1});
+                if (piece != '.' && isWhite(piece) == Player) {
+                    for (Move mv : curBoard->getLegalMoves({x1, y1})) {
+                        movedPiece = curBoard->betweenMove(mv);
+                        score = evaluateRecursive(mv, otherPlayer(Player), alpha, beta, levels - 1);
+                        maxima = std::max( maxima, score);
+                        alpha = std::max( alpha, score);
+                        curBoard->betweenMove({mv.to, mv.from}, movedPiece);
+                        if (beta <= alpha){
+                            //logInfo("pruned after "+ std::to_string(alpha)+" >= "+ std::to_string(beta), 1);
+                            y1 = 100;
+                            x1 = 100;
+                            break;
+                        }
                     }
                 }
             }
         }
+        //logExit(std::to_string(maxima), 1);
+        return maxima;
+    }else{
+        minima = INFINITY;
+        for (y1 = 0; y1 < 8; ++y1) {
+            for (x1 = 0; x1 < 8; ++x1) {
+                piece = curBoard->get({x1, y1});
+                if (piece != '.' && isWhite(piece) == Player) {
+                    for (Move mv : curBoard->getLegalMoves({x1, y1})) {
+                        movedPiece = curBoard->betweenMove(mv);
+                        score = evaluateRecursive(mv, otherPlayer(Player), alpha, beta, levels - 1);
+                        minima = std::min( minima, score);
+                        beta = std::min( beta, score);
+                        curBoard->betweenMove({mv.to, mv.from}, movedPiece);
+                        if (beta <= alpha){
+                            //logInfo("pruned after "+ std::to_string(alpha)+" >= "+ std::to_string(beta), 1);
+                            y1 = 100;
+                            x1 = 100;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        //logExit(std::to_string(minima), 1);
+        return minima;
     }
-    logExit(std::to_string(maxima * reverser), 1);
-    return maxima * reverser;
 }
 
 
@@ -110,7 +138,7 @@ Move E_Recursive::calculate() {
             if (p1 != '.' && isWhite(p1) == color) {
                 for (Move mv : curBoard->getLegalMoves({x1, y1})) {
                     bp1 = curBoard->betweenMove(mv);
-                    score = evaluateRecursive(mv, otherPlayer(color), -INFINITY, BestMove.score, 6); // 3
+                    score = evaluateRecursive(mv, otherPlayer(color), BestMove.score, INFINITY, 3); // 3
                     curBoard->betweenMove({mv.to, mv.from}, bp1);
                     for (prioEngine engine : prioritiesEngine) {
                         score += getEngineResult(mv, engine.engine) * engine.priority;

@@ -1,39 +1,49 @@
 #ifndef BOARD_RENDER_H
 #define BOARD_RENDER_H
 
-#include <SFML/Graphics.hpp>
-#include <SFML/System/Vector2.hpp>
+#include "windowInterface.cpp"
 #include <vector>
-#include "../core/board.h"
+#include <board.h>
 #include "../constants.h"
-#include "../core/chessVector.h"
+#include <chessVector.h>
 #include "textureManager.h"
 
-struct onClickReturn {
-  bool hasMoved = false;
-  Move move = {{0,0},{0,0}};
-  bool hasPromoted = false;
-  unsigned char selectedPromotion = '.';
 
-  onClickReturn(bool hasMoved, Move move, bool hasPromoted, unsigned char selectedPromotion)
+struct onClickReturn {
+    bool hasMoved = false;
+    Move move = {{0,0},{0,0}};
+    bool hasPromoted = false;
+    unsigned char selectedPromotion = '.';
+
+    onClickReturn(bool hasMoved, Move move, bool hasPromoted, unsigned char selectedPromotion)
       : hasMoved(hasMoved), move(move), hasPromoted(hasPromoted), selectedPromotion(selectedPromotion){}
-  onClickReturn()
+    onClickReturn()
       : hasMoved(false), move({{0,0},{0,0}}), hasPromoted(false), selectedPromotion('.'){}
 };
 
-class RenderBoard {
+
+class RenderBoard : public WindowInterface {
 public:
-    RenderBoard(sf::RenderWindow& w, const sf::Vector2f& pos);
-    void draw(TextureManager &textures, Board &board, double animationProgress);
-    void onMouseMove(TextureManager &textures, sf::Vector2i &mousePos);
-    onClickReturn onClick(sf::Vector2i &clickPos, bool isClicking, Board &board);
-    void movePiece(Move move, Board &board, unsigned char promotedTo);
+    RenderBoard(sf::RenderWindow& w, Board &board, TextureManager &textures);
+    void initialize(const sf::Vector2f &pos, const sf::Vector2f &size) override;
+    void draw(const double timeSinceStart) override;
+    void onMouseMove(const sf::Vector2i &mousePos) override;
+    void onClick(const sf::Vector2i &clickPos, bool isClicking) override;
+
+    void movePiece(Move move, unsigned char promotedTo);
+    onClickReturn getClickReturn() const;
+
+    Board &gameBoard;
+    TextureManager &textureManager;
+    onClickReturn clickReturn = onClickReturn();
 
     std::vector<sf::RectangleShape> cells = {};
-    sf::Vector2f boardPos;
+    sf::Vector2f boardPos = {0.f, 0.f};
+    sf::Vector2f boardSize = {0.f, 0.f};
+
     sf::Vector2f selPieceScreenPos;
     sf::RenderWindow& window;
-    float cellSize = boardSize / 8;
+    sf::Vector2f cellSize = {0.f, 0.f};
     std::vector<Move> possibleMoves;
     bool pieceSelected = false;
     unsigned char selectedPieceChar = 'p';
@@ -44,7 +54,7 @@ public:
 
     bool showPromotionWindow = false;
     float promoButtonScalar = .7f;
-    float promoButtonUnit = promoButtonScalar * cellSize;
+    float promoButtonUnit = promoButtonScalar * cellSize.x;
     float promoButtonMargin = 10.f * promoButtonScalar;
     sf::Vector2f promotionWindowPos = {100, 100};
     sf::Vector2f promotionButtonSize = {promoButtonUnit + 4 * promoButtonMargin, 4 * promoButtonUnit + 4 * promoButtonMargin};

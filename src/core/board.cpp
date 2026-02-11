@@ -566,14 +566,14 @@ inline bool Board::isAttackedByOpponent(ChessVector square, enPlayers color) {
             return true;
         }
     }
-    
+
     const int pawnDir = color ? -1 : 1;
-    
+
     p = get(square + ChessVector{1, pawnDir});
     if (p && isBlack(p) == color && pieceType(p) == 'p'){
         LOG_EXIT("Is attacked by pawn -> true");
         return true;}
-    
+
     p = get(square + ChessVector{-1, pawnDir});
     if (p && isBlack(p) == color && pieceType(p) == 'p'){
         LOG_EXIT("Is attacked by pawn -> true");
@@ -694,14 +694,14 @@ inline unsigned char Board::get(ChessVector piece) const {
  * and returns (re)moved piece
  *
  */
-unsigned char Board::betweenMove(Move move) {
+inline unsigned char Board::betweenMove(Move move) {
      unsigned char killed = get(move.to);
      set(move.to, get(move.from));
      set(move.from, '.');
      return killed;
  }
 
-unsigned char Board::betweenMove(Move move, unsigned char replacedBy) {
+inline unsigned char Board::betweenMove(Move move, unsigned char replacedBy) {
      unsigned char killed = get(move.to);
      set(move.to, get(move.from));
      set(move.from, replacedBy);

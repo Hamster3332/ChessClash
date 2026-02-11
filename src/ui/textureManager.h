@@ -7,9 +7,11 @@
 
 class TextureManager {
 public:
-    std::map<char, sf::Texture> textures;
+    std::map<char, sf::Texture> piece_textures;
+    std::map<std::string, sf::Texture> ui_assets;
     void load();
     sf::Texture& get(char piece);
+    sf::Texture& get_ui_asset(std::string asset_name);
 };
 
 #endif

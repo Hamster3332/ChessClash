@@ -8,7 +8,7 @@ inline constexpr sf::Color darkSquareC = sf::Color(78, 64, 42);
 inline constexpr sf::Color lightSquareC = sf::Color(204, 173, 124);
 inline constexpr sf::Color selectedSquareC = sf::Color(40, 205, 40, 100);
 inline constexpr sf::Color possibleMoveC = sf::Color(70, 170, 70, 200);
-inline constexpr float boardSize = (float) WINDOW_SIZE.y  * 0.9;
+
 inline unsigned char standardBoard[8][8] = {
     {'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'},
     {'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'},

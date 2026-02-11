@@ -7,6 +7,7 @@
 #include <vector>
 
 enum GameState {
+    Idle = 9,
     ONGOING = 2,
     WHITE_WINS = 1,
     BLACK_WINS = -1,

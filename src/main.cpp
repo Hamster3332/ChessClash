@@ -26,175 +26,231 @@
 #include <player.h>
 #include <renderBoard.h>
 
+#include "menu.h"
 
-int main()
-{
-    logInitiate();
-    logID(0);
-    srand(time(0)); // Make Random random
 
-    auto window = sf::RenderWindow(sf::VideoMode(WINDOW_SIZE), "Chess Clash"); // create Window
-    window.setFramerateLimit(144);
-
-    Board board; // Create Board
-    board.setBoardState(standardBoard);
-
-    sf::Vector2f boardPos = {(float)WINDOW_SIZE.y * 0.05f, (float)WINDOW_SIZE.y * 0.05f};
-    RenderBoard renderBoard(window, boardPos);
+class ChessClashApp {
+public:
+    sf::RenderWindow window;
+    Board board;
 
     TextureManager textures;
-    textures.load();
-
     SoundManager sounds;
-    sounds.load();
-    SoundPlayer soundPlayer(sounds);
+    SoundPlayer soundPlayer;
+    sf::Clock clock;
+    std::vector<sf::Time> calcTimes;
 
+    RenderBoard renderBoard;
+    MainMenu menu;
+    std::vector<WindowInterface *> UIElements;
 
-    sf::Vector2i clickPos = {};
-    sf::Vector2i mousePos = {};
-    onClickReturn clickReturn = onClickReturn();
+    std::chrono::system_clock::time_point frameStartTime;
+    std::chrono::system_clock::time_point timeOfLastMove;
 
-    //PlayerInterface player = OnlinePlayer(board, renderBoard, enPlayers::Black);
-    E_Recursive bot1(board, renderBoard);
-    E_General bot2(board, renderBoard);
-
-
-    /*
-     * BEST BOT so far:
-     * enEngines::unKamikaze, 10.0f
-     * enEngines::bandit, 10.0f
-     * enEngines::random, 1.0f
-     */
-    //bot1.generalSet(enEngines::unKamikaze, 40.0f);
-    bot1.generalSet(enEvaluators::material, 100.0f);
-    //bot1.generalSet(enEvaluators::push, 0.01f);
-    //bot1.generalSet(enEvaluators::check, 1.f);
-    //bot1.generalSet(enEngines::capture, 40.0f);
-    //bot1.generalSet(enEngines::enPassant, 1000.0f);
-    //bot1.generalSet(enEngines::promote, 1000.0f);
-    //bot1.generalSet(enEngines::badSchoolKid, 1.0f);
-    //+/
-
-    //bot1.generalSet(enEngines::random, 1.0f);
-
-
-    bot2.generalSet(enEngines::badSchoolKid, 1.0f);
-
-    //OnlinePlayer MMMM(board, renderBoard, enPlayers::White);
-    Player player(board, renderBoard);
-    OnlinePlayer oPlayer(board, renderBoard);
-
-    PlayerInterface& playerWhite = bot2;
-    PlayerInterface& playerBlack = bot1;
-
-    playerWhite.startBot(enPlayers::White);
-    playerBlack.startBot(enPlayers::Black);
-
-    while (!playerWhite.isReady() || !playerBlack.isReady()) {
-        std::cout << "plz Wait" << std::endl;
-    }
-    activePlayerInterface& activePlayer = player;
-    playerWhite.startTurn({{-1, -1}, {-1, -1}});
-    Move lastMove = {{-1, -1}, {-1, -1}};
-    auto timeOfLastMove = std::chrono::system_clock::now();
-    auto frameStartTime = std::chrono::system_clock::now();
     double time = 0.5f;
     double timeSinceLastTurn = 1.0f;
 
-    sf::Clock clock;
+    PlayerInterface *playerWhite = nullptr;
+    PlayerInterface *playerBlack = nullptr;
+    activePlayerInterface *activePlayer = nullptr;
 
-    std::vector<sf::Time> calcTimes = {};
+    sf::Vector2i clickPos;
+    sf::Vector2i mousePos;
+    Move lastMove = {{-1, -1}, {-1, -1}};
 
-    //std::this_thread::sleep_for(std::chrono::milliseconds(4000));
+    ChessClashApp() : soundPlayer(SoundPlayer(sounds)),
+    renderBoard(RenderBoard(window, board, textures)),
+    menu(MainMenu(window, textures)),
+    window(sf::RenderWindow(sf::VideoMode(WINDOW_SIZE), "Chess Clash")){}
 
-    while (window.isOpen()) // mainLoop
-    {
+    void run() {
+        logInitiate();
+        logID(0);
+        //srand(time(0)); // Make Random random
+
+        window.setFramerateLimit(180);
+
+        board.setBoardState(standardBoard);
+
+        textures.load();
+
+        sounds.load();
+
+        //PlayerInterface player = OnlinePlayer(board, renderBoard, enPlayers::Black);
+        E_Recursive bot1(board, renderBoard);
+        E_General bot2(board, renderBoard);
+
+
+        /*
+         * BEST BOT so far:
+         * enEngines::unKamikaze, 10.0f
+         * enEngines::bandit, 10.0f
+         * enEngines::random, 1.0f
+         */
+        bot1.generalSet(enEvaluators::material, 100.0f);
+
+        bot2.generalSet(enEngines::badSchoolKid, 1.0f);
+
+        Player player(board, renderBoard);
+        OnlinePlayer oPlayer(board, renderBoard);
+
+        playerWhite = &player;
+        playerBlack = &player;
+
+        playerWhite -> startBot(enPlayers::White);
+        playerBlack -> startBot(enPlayers::Black);
+        activePlayer = &player;
+
+        while (!playerWhite -> isReady() || !playerBlack -> isReady()) {
+            std::cout << "plz Wait" << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+
+        playerWhite -> startTurn({{-1, -1}, {-1, -1}});
+
+        UIElements.push_back(&renderBoard);
+        UIElements.push_back(&menu);
+
+        sf::Vector2f pos = {0.f, 0.f};
+        sf::Vector2f size = {WINDOW_SIZE.x, WINDOW_SIZE.y};
+        renderBoard.initialize(pos, size);
+        menu.initialize(pos, size);
+
         frameStartTime = std::chrono::system_clock::now();
-        timeSinceLastTurn = ((std::chrono::duration<double>)(frameStartTime - timeOfLastMove)).count();
-        clickReturn = onClickReturn();
-        while (const std::optional event = window.pollEvent())
+        timeOfLastMove = std::chrono::system_clock::now();
+
+        //std::this_thread::sleep_for(std::chrono::milliseconds(4000));
+        mainLoop();
+
+        logClose();
+        playerWhite = nullptr;
+        playerBlack = nullptr;
+        activePlayer = nullptr;
+    }
+
+private:
+
+    void mainLoop() {
+        onClickReturn clickReturn = onClickReturn();
+        while (window.isOpen()) // mainLoop
         {
-            if (event->is<sf::Event::Closed>())
-            {
+            renderBoard.active = menu.enableGame;
+            renderBoard.drawing = menu.showGame;
+
+            frameStartTime = std::chrono::system_clock::now();
+            timeSinceLastTurn = static_cast<std::chrono::duration<double>>(frameStartTime - timeOfLastMove).count();
+            clickReturn = onClickReturn();
+
+            clickReturn = renderBoard.getClickReturn();
+
+            if (clickReturn.hasMoved) {
+                activePlayer -> activeMove(clickReturn.move);
+            }
+
+            if (clickReturn.hasPromoted) {
+                activePlayer -> promotionResult(clickReturn.selectedPromotion);
+            }
+
+            eventHandler();
+
+            updateBoard();
+
+
+            window.clear();
+
+            frameStartTime = std::chrono::system_clock::now();
+            timeSinceLastTurn = static_cast<std::chrono::duration<double>>(frameStartTime - timeOfLastMove).count();
+            for (WindowInterface *UIElement: UIElements) {
+                if (!UIElement->drawing) continue;
+                UIElement->draw(timeSinceLastTurn / time);
+            }
+
+            window.display();
+        }
+    }
+
+    void eventHandler() {
+
+        while (const std::optional event = window.pollEvent()) {
+            if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
-            if (const auto* mouseButtonPressed = event->getIf<sf::Event::MouseButtonPressed>())
-            {
-                if (mouseButtonPressed->button == sf::Mouse::Button::Left)
-                {
-                    clickPos = {mouseButtonPressed->position.x, mouseButtonPressed->position.y};
-                    clickReturn = renderBoard.onClick(clickPos, true, board);
+            if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+                if (keyPressed->code == sf::Keyboard::Key::Escape) {
                 }
             }
-            else if (const auto* mouseButtonReleased = event->getIf<sf::Event::MouseButtonReleased>())
-            {
-                if (mouseButtonReleased->button == sf::Mouse::Button::Left)
-                {
-                    clickPos = {mouseButtonReleased->position.x, mouseButtonReleased->position.y};
-                    clickReturn = renderBoard.onClick(clickPos, false, board);
+            if (const auto *mouseButtonPressed = event->getIf<sf::Event::MouseButtonPressed>()) {
+                if (mouseButtonPressed->button == sf::Mouse::Button::Left) {
+                    for (WindowInterface *UIElement: UIElements) {
+                        if (!UIElement->active) continue;
+                        clickPos = {mouseButtonPressed->position.x, mouseButtonPressed->position.y};
+                        UIElement->onClick(clickPos, true);
+                    }
+                }
+            } else if (const auto *mouseButtonReleased = event->getIf<sf::Event::MouseButtonReleased>()) {
+                if (mouseButtonReleased->button == sf::Mouse::Button::Left) {
+                    for (WindowInterface *UIElement: UIElements) {
+                        if (!UIElement->active) continue;
+                        clickPos = {mouseButtonReleased->position.x, mouseButtonReleased->position.y};
+                        UIElement->onClick(clickPos, false);
+                    }
                 }
             }
-            if (const auto* mouseMoved = event->getIf<sf::Event::MouseMoved>())
-            {
-                mousePos = {mouseMoved->position.x, mouseMoved->position.y};
-                renderBoard.onMouseMove(textures, mousePos);
+            if (const auto *mouseMoved = event->getIf<sf::Event::MouseMoved>()) {
+                for (WindowInterface *UIElement: UIElements) {
+                    if (!UIElement->active) continue;
+                    mousePos = {mouseMoved->position.x, mouseMoved->position.y};
+                    UIElement->onMouseMove(mousePos);
+                }
             }
         }
+    }
 
-        if (clickReturn.hasMoved) {
-            activePlayer.activeMove(clickReturn.move);
-        }
-
-        if (clickReturn.hasPromoted) {
-            activePlayer.promotionResult(clickReturn.selectedPromotion);
-        }
-
-
-        //std::cout << (frameStartTime - timeOfLastMove).count() << std::endl;
+    void updateBoard() {
         if (board.gameState != GameState::ONGOING) {
-        }
-        else if (timeSinceLastTurn < time){}
-        else if (board.activePlayer == White) {
+        } else if (timeSinceLastTurn < time) {
+        } else if (board.activePlayer == White && renderBoard.active) {
             clock.restart();
-            lastMove = playerWhite.calculate();
+            lastMove = playerWhite -> calculate();
             calcTimes.push_back(clock.getElapsedTime());
 
             float avT = 0.0f;
-            for (sf::Time t : calcTimes) {
+            for (sf::Time t: calcTimes) {
                 avT += t.asSeconds();
             }
             avT /= calcTimes.size();
+
             //std::cout << "White takes on average " << avT << " seconds to calculate.\n";
 
 
             //std::cout << lastMove.from.x << lastMove.from.y << lastMove.to.x << lastMove.to.y << std::endl;
             if (lastMove.from.x != -1) {
-                if (board.isLegalMove(lastMove.from, lastMove.to)){
+                if (board.isLegalMove(lastMove.from, lastMove.to)) {
                     soundPlayer.getToMove(lastMove, board, sounds);
-                    playerBlack.startTurn(lastMove);
-                    renderBoard.movePiece(lastMove, board, playerWhite.getPromotion());
+                    playerBlack -> startTurn(lastMove);
+                    renderBoard.movePiece(lastMove, playerWhite -> getPromotion());
                     soundPlayer.getAfterMove(board, sounds);
                     soundPlayer.play();
                     timeOfLastMove = std::chrono::system_clock::now();
                 } else {
                     std::cout << "Matinnate was right... what a bummer\n";
-                    std::cout << std::to_string(lastMove.from.x) << "," << std::to_string(lastMove.from.y) << ",to:";
+                    std::cout << std::to_string(lastMove.from.x) << "," << std::to_string(lastMove.from.y) <<
+                            ",to:";
                     std::cout << std::to_string(lastMove.to.x) << "," << std::to_string(lastMove.to.y) << std::endl;
                 }
             } else {
                 //std::cout << "DeclinedMoveWhite" << moveToString(lastMove) << std::endl;
             }
-        }
-        else if (board.activePlayer == Black) {
+        } else if (board.activePlayer == Black && renderBoard.active) {
             clock.restart();
-            lastMove = playerBlack.calculate();
+            lastMove = playerBlack -> calculate();
             //std::cout << "Black took " << clock.getElapsedTime().asSeconds() << " seconds to calculate.\n";
             //std::cout << lastMove.from.x << lastMove.from.y << lastMove.to.x << lastMove.to.y << std::endl;
             if (lastMove.from.x != -1) {
-                if (board.isLegalMove(lastMove.from, lastMove.to)){
+                if (board.isLegalMove(lastMove.from, lastMove.to)) {
                     soundPlayer.getToMove(lastMove, board, sounds);
-                    playerWhite.startTurn(lastMove);
-                    renderBoard.movePiece(lastMove, board, playerBlack.getPromotion());
+                    playerWhite -> startTurn(lastMove);
+                    renderBoard.movePiece(lastMove, playerBlack -> getPromotion());
                     soundPlayer.getAfterMove(board, sounds);
                     soundPlayer.play();
                     timeOfLastMove = std::chrono::system_clock::now();
@@ -207,14 +263,19 @@ int main()
                 std::cout << "DeclinedMoveBlack" << moveToString(lastMove) << std::endl;
             }
         }
-
-        window.clear();
-
-        frameStartTime = std::chrono::system_clock::now();
-        timeSinceLastTurn = ((std::chrono::duration<double>)(frameStartTime - timeOfLastMove)).count();
-        renderBoard.draw(textures, board, timeSinceLastTurn / time);
-
-        window.display();
     }
-    logClose();
+};
+
+int main() {
+    std::cout << "lol" << std::endl;
+    ChessClashApp clash_app;
+    clash_app.run();
+
+    try {
+        //clash_app.run();
+    } catch (std::exception e) {
+        throw e.what();
+    }
+
+    return 0;
 }

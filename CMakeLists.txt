@@ -55,6 +55,9 @@ target_sources(ui
         src/ui/renderBoard.cpp
         src/ui/textureManager.cpp
         src/ui/soundManager.cpp
+        src/ui/windowInterface.cpp
+        src/ui/interpolations.cpp
+        src/ui/menu.cpp
     PUBLIC
         FILE_SET HEADERS
         BASE_DIRS
@@ -63,6 +66,7 @@ target_sources(ui
             src/ui/renderBoard.h
             src/ui/textureManager.h
             src/ui/soundManager.h
+            src/ui/menu.h
 )
 
 target_link_libraries(ui
