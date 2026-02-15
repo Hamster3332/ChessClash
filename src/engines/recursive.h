@@ -7,6 +7,15 @@
 #include "chessVector.h"
 #include "playerInterface.cpp"
 #include <subGeneral.h>
+#include <iostream>
+
+struct moveRecsursives {
+    float score = 0;
+    float alpha = 0;
+    float beta = 0;
+    Move move = {{-1,-1}, {-1,-1}};
+    std::vector<struct  moveRecsursives> later = {};
+};
 
 class E_Recursive : public PlayerInterface {
 public:
@@ -22,7 +31,6 @@ public:
     Move fallback(std::vector<Move> &moves) override;
 
     Board* curBoard;
-    float score;
     enPlayers color;
     scoredMove selected = {{{-1, -1}, {-1, -1}}, -1.0f};
     std::vector<prioEvaluators> priorities = {};
@@ -31,10 +39,12 @@ public:
 
     std::vector<scoredMove> test = {};
 
+    std::vector<moveRecsursives> recursiveReturn = {};
+
     scoredMove getBestMove();
-    float evaluateRecursive(Move mv, enPlayers Player, float alpha, float beta, int levels);
-    float getEvaluatorResult(enEvaluators engine);
-    float getEngineResult(Move mv, enEngines engine);
+    float evaluateRecursive(enPlayers Player, float alpha, float beta, int levels, moveRecsursives &recDis);
+    float getEvaluatorResult(enEvaluators engine) const;
+    float getEngineResult(Move mv, enEngines engine) const;
 };
 
 #endif

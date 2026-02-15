@@ -48,6 +48,7 @@ struct Move {
     ChessVector to;
 };
 
+
 struct scoredMove {
     Move move;
     float score;

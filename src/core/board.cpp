@@ -6,7 +6,6 @@
 #include <iostream>
 #include <ostream>
 #include <vector>
-#include "logger.h"
 
 #ifdef DEBUG
 #define LOG_ENTER(x) logEnter(x)
@@ -17,6 +16,8 @@
 #define LOG_EXIT(x)
 #define LOG_INFO(x)
 #endif
+
+Logger logger;
 
 
 static ChessVector kingDirections[8] = {{1, 0}, {1, 1}, {0, 1}, {-1, 0}, {-1, -1}, {0, -1}, {-1, 1}, {1, -1}};
@@ -29,12 +30,15 @@ inline bool isPlayer(unsigned char c, enPlayers player) {
     return isBlack(c) == (player == enPlayers::Black);
 }
 
-enPlayers otherPlayer(enPlayers player){
-    if (player == enPlayers::White)return enPlayers::Black;
+enPlayers otherPlayer(enPlayers player) {
+    return static_cast<enPlayers>(1 - player);
+    logger.log("otherPlayer");
+    if (player == enPlayers::White) return enPlayers::Black;
     return enPlayers::White;
 }
 
 enPlayers getPlayer(unsigned char c) {
+    logger.log("getPlayer");
     if( isBlack(c)){
         return enPlayers::Black;
     }
@@ -54,6 +58,7 @@ inline unsigned char pieceType(unsigned char p) {
 }
 
 int manhattanDistance(int pieceX, int pieceY, int goalX, int goalY) {
+    logger.log("manhattanDistance");
     return std::abs(goalX - pieceX) + std::abs(goalY - pieceY);
 };
 
@@ -70,6 +75,7 @@ std::size_t BoardHash::operator()(const BoardArray& b) const {
 
 // checks the move independent of the piece type
 bool Board::movePrecheck(const Move& move) {
+    logger.log("movePrecheck");
     LOG_INFO("movePrecheck");
     unsigned char pieceChar = get(move.from);
     unsigned char goalChar = get(move.to);
@@ -90,6 +96,7 @@ bool Board::movePrecheck(const Move& move) {
 };
 
 void Board::setBoardState(unsigned char newState[8][8]) {
+    logger.log("setBoardState");
     LOG_ENTER("setBoardState");
     for (int y = 0; y < 8; ++y) {
         for (int x = 0; x < 8; ++x) {
@@ -105,6 +112,7 @@ void Board::setBoardState(unsigned char newState[8][8]) {
 
 // Hurayy Finished
 bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
+    logger.log("isLegalMove");
     LOG_ENTER("isLegalMove");
     unsigned char pieceChar = get(piece);
     unsigned char goalChar = get(goal);
@@ -258,6 +266,7 @@ bool Board::isLegalMove(ChessVector piece, ChessVector goal) {
 }
 
 std::vector<Move> Board::getLegalMoves(ChessVector piece) {
+    logger.log("getLegalMoves");
     LOG_ENTER("Board::getLegalMoves");
     unsigned char pieceChar = get(piece);
     unsigned char pType = pieceType(pieceChar);
@@ -378,6 +387,7 @@ std::vector<Move> Board::getLegalMoves(ChessVector piece) {
 }
 
 bool Board::existsLegalMove(bool checkedForActivePlayer) {
+    logger.log("existsLegalMove(bool)");
     LOG_ENTER("Board::existsLegalMove (bool)");
     unsigned char piece;
     for (int y = 0; y < 8; ++y) {
@@ -396,6 +406,7 @@ bool Board::existsLegalMove(bool checkedForActivePlayer) {
 }
 
 bool Board::existsLegalMove(ChessVector piece) {
+    logger.log("existsLegalMove(ChessVector)");
     LOG_ENTER("Board::existsLegalMove (piece)");
     unsigned char pieceChar = get(piece);
     unsigned char pType = pieceType(pieceChar);
@@ -506,14 +517,15 @@ bool Board::existsLegalMove(ChessVector piece) {
     return false;
 }
 
-bool Board::hasTurn(ChessVector piece){
+bool Board::hasTurn(ChessVector piece) const{
     return isWhite(get(piece)) == activePlayer;
 }
-bool Board::isPromotion(Move move){
+bool Board::isPromotion(Move move) const{
     return tolower(get(move.from)) == 'p' && (move.to.y == 0 || move.to.y == 7);
 }
 
-inline bool Board::isAttackedByOpponent(ChessVector square, enPlayers color) {
+inline bool Board::isAttackedByOpponent(ChessVector square, enPlayers color) const {
+    logger.log("isAttackedByOpponent");
     LOG_ENTER("Board::isAttackedByOpponent");
     ChessVector watchDog = {0,0};
     unsigned char p;
@@ -524,6 +536,16 @@ inline bool Board::isAttackedByOpponent(ChessVector square, enPlayers color) {
         if (isBlack(p) != color) continue;
         if (pieceType(p) == 'n') {
             LOG_EXIT("Knight attacks piece -> true");return true;
+        }
+    }
+    // King
+    for (const ChessVector& Direction : kingDirections) {
+        p = get(square + Direction);
+        if (!p) continue;
+        if (isBlack(p) != color) continue;
+        if (pieceType(p) == 'k') {
+            LOG_EXIT("Is attacked by king -> true");
+            return true;
         }
     }
     // check "THE ROOOOOOK!" - Levy Rozman
@@ -556,16 +578,6 @@ inline bool Board::isAttackedByOpponent(ChessVector square, enPlayers color) {
             return true;
         }
     }
-    // King
-    for (const ChessVector& Direction : kingDirections) {
-        p = get(square + Direction);
-        if (!p) continue;
-        if (isBlack(p) != color) continue;
-        if (pieceType(p) == 'k') {
-            LOG_EXIT("Is attacked by king -> true");
-            return true;
-        }
-    }
 
     const int pawnDir = color ? -1 : 1;
 
@@ -584,7 +596,8 @@ inline bool Board::isAttackedByOpponent(ChessVector square, enPlayers color) {
 }
 
 GameState Board::movePiece(ChessVector piece, ChessVector goal, bool changeActivePlayer, unsigned char promotedTo) {
-    LOG_ENTER("Board::movePiece");
+    //logger.log("movePiece");
+    //LOG_ENTER("Board::movePiece");
     unsigned char p = get(piece);
     if (get(goal) == '.') {
         movesWithoutCapture++;
@@ -640,8 +653,8 @@ GameState Board::movePiece(ChessVector piece, ChessVector goal, bool changeActiv
         }
     }
 
-    set(goal, p);
-    set(piece, '.');
+    betweenMove({piece, goal});
+
     if (changeActivePlayer) {
         if (activePlayer == enPlayers::White)activePlayer = enPlayers::Black;
         else activePlayer = enPlayers::White;
@@ -683,9 +696,15 @@ inline void Board::killPiece(ChessVector piece) {
     boardState[piece.y][piece.x] = '.';
 }
 
-
+/*
 inline unsigned char Board::get(ChessVector piece) const {
     if (piece.x > 7 || piece.x < 0 || piece.y > 7 || piece.y < 0) return 0;
+    return boardState[piece.y][piece.x];
+}*/
+
+inline unsigned char Board::get(ChessVector piece) const {
+    //logger.log("get");
+    if ((unsigned)piece.x > 7 || (unsigned)piece.y > 7) return 0;
     return boardState[piece.y][piece.x];
 }
 
@@ -695,18 +714,20 @@ inline unsigned char Board::get(ChessVector piece) const {
  *
  */
 inline unsigned char Board::betweenMove(Move move) {
-     unsigned char killed = get(move.to);
-     set(move.to, get(move.from));
-     set(move.from, '.');
-     return killed;
- }
+    logger.log("betweenMove");
+    unsigned char killed = get(move.to);
+    set(move.to, get(move.from));
+    set(move.from, '.');
+    return killed;
+}
 
 inline unsigned char Board::betweenMove(Move move, unsigned char replacedBy) {
-     unsigned char killed = get(move.to);
-     set(move.to, get(move.from));
-     set(move.from, replacedBy);
-     return killed;
- }
+    //logger.log("betweenMove");
+    unsigned char killed = get(move.to);
+    set(move.to, get(move.from));
+    set(move.from, replacedBy);
+    return killed;
+}
 
 inline void Board::set(ChessVector piece, unsigned char type){
     boardState[piece.y][piece.x] = type;

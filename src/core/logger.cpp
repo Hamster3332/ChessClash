@@ -72,3 +72,14 @@ void logClose(){
     LOGGER_file << "\n]";
     LOGGER_file.close();
 }
+
+
+void Logger::log(const std::string& funcName) {
+    functionCount[funcName]++;
+}
+
+void Logger::results() {
+    for (const auto& [key, value] : functionCount) {
+        std::cout << key << ": " << value << "\n";
+    }
+}

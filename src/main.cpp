@@ -57,13 +57,16 @@ public:
     sf::Vector2i clickPos;
     sf::Vector2i mousePos;
     Move lastMove = {{-1, -1}, {-1, -1}};
+    E_Recursive bot1;
 
     ChessClashApp() : soundPlayer(SoundPlayer(sounds)),
     renderBoard(RenderBoard(window, board, textures)),
     menu(MainMenu(window, textures)),
-    window(sf::RenderWindow(sf::VideoMode(WINDOW_SIZE), "Chess Clash")){}
+    window(sf::RenderWindow(sf::VideoMode(WINDOW_SIZE), "Chess Clash")),
+    bot1(E_Recursive(board, renderBoard)){}
 
     void run() {
+
         logInitiate();
         logID(0);
         //srand(time(0)); // Make Random random
@@ -77,7 +80,6 @@ public:
         sounds.load();
 
         //PlayerInterface player = OnlinePlayer(board, renderBoard, enPlayers::Black);
-        E_Recursive bot1(board, renderBoard);
         E_General bot2(board, renderBoard);
 
 
@@ -119,7 +121,6 @@ public:
         frameStartTime = std::chrono::system_clock::now();
         timeOfLastMove = std::chrono::system_clock::now();
 
-        //std::this_thread::sleep_for(std::chrono::milliseconds(4000));
         mainLoop();
 
         logClose();
@@ -134,12 +135,16 @@ private:
         onClickReturn clickReturn = onClickReturn();
         while (window.isOpen()) // mainLoop
         {
-            renderBoard.active = menu.enableGame;
+
+            if (menu.enableGame) {
+                renderBoard.active = true;
+                menu.enableGame = false;
+            }
+
             renderBoard.drawing = menu.showGame;
 
             frameStartTime = std::chrono::system_clock::now();
             timeSinceLastTurn = static_cast<std::chrono::duration<double>>(frameStartTime - timeOfLastMove).count();
-            clickReturn = onClickReturn();
 
             clickReturn = renderBoard.getClickReturn();
 
@@ -153,7 +158,8 @@ private:
 
             eventHandler();
 
-            updateBoard();
+            if (renderBoard.active)
+                updateBoard();
 
 
             window.clear();

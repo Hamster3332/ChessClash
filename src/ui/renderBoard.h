@@ -29,6 +29,7 @@ public:
     void draw(const double timeSinceStart) override;
     void onMouseMove(const sf::Vector2i &mousePos) override;
     void onClick(const sf::Vector2i &clickPos, bool isClicking) override;
+    void transform(const sf::Vector2f pos, const sf::Vector2f size) override;
 
     void movePiece(Move move, unsigned char promotedTo);
     onClickReturn getClickReturn() const;

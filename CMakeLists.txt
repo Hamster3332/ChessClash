@@ -33,11 +33,15 @@ target_link_libraries(ChessClash
 
 add_library(core)
 
+set_source_files_properties(src/core/fastBoard.c PROPERTIES LANGUAGE C)
+
 target_sources(core
     PRIVATE
         src/core/board.cpp
         src/core/chessVector.cpp
         src/core/logger.cpp
+
+        src/core/fastBoard.c
     PUBLIC
         FILE_SET HEADERS
         BASE_DIRS
@@ -46,6 +50,8 @@ target_sources(core
             src/core/board.h
             src/core/chessVector.h
             src/core/logger.h
+
+            src/core/fastBoard.h
 )
 
 add_library(ui)

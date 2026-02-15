@@ -28,6 +28,19 @@ void RenderBoard::initialize(const sf::Vector2f &pos, const sf::Vector2f &size) 
     }
 };
 
+void RenderBoard::transform(const sf::Vector2f pos, const sf::Vector2f size){
+    boardPos = pos;
+    boardSize = size;
+    cellSize = size / 8.0f;
+    for (int y = 0; y < 8; y++) {
+        for (int x = 0; x < 8; x++) {
+            cells.at(y*8+ x).setSize( cellSize);
+            cells.at(y*8+ x).setPosition({boardPos.x + cellSize.x * x, boardPos.y + cellSize.y * y});
+        }
+    }
+
+}
+
 void RenderBoard::draw(const double timeSinceStart) {
     for (int c = 0; c < 64; c++) {
         window.draw(cells[c]);

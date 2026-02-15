@@ -2,9 +2,12 @@
 #define BOARD_H
 
 #include "chessVector.h"
+#include "logger.h"
 #include <array>
 #include <unordered_map>
 #include <vector>
+
+extern Logger logger;
 
 enum GameState {
     Idle = 9,
@@ -36,10 +39,10 @@ using BoardArray = std::array<std::array<unsigned char, 8>, 8>;
 
 int manhattanDistance(int pieceX, int pieceY, int goalX, int goalY);
 
-
 struct BoardHash {
     std::size_t operator()(const BoardArray& b) const;
 };
+
 
 class Board {
 public:
@@ -60,7 +63,7 @@ public:
     // in order:
     // white: king moved 1 rook moved, 8 rook moved,
     // black: king moved, 1 rook moved, 8 rook moved
-    bool castlesPossible[4] = {1, 1, 1, 1};
+    bool castlesPossible[4] = {true, true, true, true};
 
     ChessVector KPos[2] = {{4, 0}, {4, 7}};
 
@@ -78,11 +81,11 @@ public:
     std::vector<Move> getLegalMoves(ChessVector piece);
     bool existsLegalMove(ChessVector piece);
     bool existsLegalMove(bool checkedForActivePlayer);
-    bool isPromotion(Move move);
+    bool isPromotion(Move move) const;
 
     GameState movePiece(ChessVector piece, ChessVector goal, bool changeActivePlayer, unsigned char promotedTo);
-    bool isAttackedByOpponent(ChessVector square, enPlayers checkedForActivePlayer);
-    bool hasTurn(ChessVector piece);
+    bool isAttackedByOpponent(ChessVector square, enPlayers checkedForActivePlayer) const;
+    bool hasTurn(ChessVector piece) const;
     unsigned char get(ChessVector piece) const;
     inline void set(ChessVector piece, unsigned char type);
     unsigned char betweenMove(Move move);

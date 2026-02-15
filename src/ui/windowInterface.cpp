@@ -11,6 +11,7 @@ public:
     virtual void onClick(const sf::Vector2i &pos, bool isClicking){}
     virtual void onMouseMove(const sf::Vector2i &pos){}
     virtual void draw(double timeSinceStart){}
+    virtual void transform(const sf::Vector2f pos,const sf::Vector2f size){}
 
     bool active = true;
     bool drawing = true;
